@@ -1,0 +1,143 @@
+## 3. ERD หลัง Normalize (3NF)
+ 
+```mermaid
+erDiagram
+    ROLES {
+        int id PK
+        string name
+        string description
+    }
+    USERS {
+        int id PK
+        int role_id FK
+        string name
+        string email UK
+        string password_hash
+        string phone
+        datetime created_at
+    }
+    ADDRESSES {
+        int id PK
+        int user_id FK
+        string recipient_name
+        string phone
+        string street
+        string sub_district
+        string district
+        string province
+        string postal_code
+        boolean is_default
+    }
+    CATEGORIES {
+        int id PK
+        string name
+        string description
+    }
+    PRODUCTS {
+        int id PK
+        int category_id FK
+        string name
+        string description
+        decimal price
+        int stock_qty
+        datetime created_at
+    }
+    PRODUCT_IMAGES {
+        int id PK
+        int product_id FK
+        string image_url
+        boolean is_primary
+        int sort_order
+    }
+    CARTS {
+        int id PK
+        int user_id FK
+        datetime created_at
+        datetime updated_at
+    }
+    CART_ITEMS {
+        int id PK
+        int cart_id FK
+        int product_id FK
+        int quantity
+    }
+    ORDERS {
+        int id PK
+        int user_id FK
+        int shipping_address_id FK
+        string status
+        datetime created_at
+    }
+    ORDER_ITEMS {
+        int id PK
+        int order_id FK
+        int product_id FK
+        int quantity
+        decimal unit_price
+    }
+    PAYMENTS {
+        int id PK
+        int order_id FK
+        decimal amount
+        string method
+        string status
+        datetime paid_at
+    }
+ 
+    ROLES      ||--o{ USERS          : assigned
+    USERS      ||--o{ ADDRESSES      : owns
+    USERS      ||--o| CARTS          : has
+    USERS      ||--o{ ORDERS         : places
+    ADDRESSES  ||--o{ ORDERS         : ships_to
+    CATEGORIES ||--o{ PRODUCTS       : contains
+    PRODUCTS   ||--o{ PRODUCT_IMAGES : has
+    CARTS      ||--o{ CART_ITEMS     : contains
+    PRODUCTS   ||--o{ CART_ITEMS     : listed_in
+    ORDERS     ||--o{ ORDER_ITEMS    : contains
+    PRODUCTS   ||--o{ ORDER_ITEMS    : listed_in
+    ORDERS     ||--o| PAYMENTS       : paid_by
+```
+ 
+---
+ 
+## 4. สรุปตาราง หลัง Normalize (3NF)
+ 
+| # | Table | Primary Key | Key Attributes | หมายเหตุ |
+|---|---|---|---|---|
+| 1 | roles | id | name | แทนที่ enum role ในตาราง users |
+| 2 | users | id | role_id FK, email UK, password_hash | email ต้อง unique |
+| 3 | addresses | id | user_id FK, street, province, postal_code | แยกออกจาก users ให้ atomic และรองรับหลายที่อยู่ |
+| 4 | categories | id | name | หมวดหมู่สินค้า |
+| 5 | products | id | category_id FK, name, price, stock_qty | ตัด image_url ออก |
+| 6 | product_images | id | product_id FK, image_url, is_primary | รองรับหลายรูปต่อสินค้า |
+| 7 | carts | id | user_id FK | 1 user ต่อ 1 cart ที่ active |
+| 8 | cart_items | id | cart_id FK, product_id FK, quantity | Unique (cart_id, product_id) |
+| 9 | orders | id | user_id FK, shipping_address_id FK, status | ตัด total_price ออก (derived) |
+| 10 | order_items | id | order_id FK, product_id FK, quantity, unit_price | เก็บ snapshot ราคา |
+| 11 | payments | id | order_id FK, amount, method, status | 1 order ต่อ 1 payment |
+ 
+---
+ 
+## 5. ความสัมพันธ์หลัก (Relationship Summary)
+ 
+- Role — User: 1 : N (หนึ่งบทบาทมีหลาย user)
+- User — Address: 1 : N (หนึ่ง user มีได้หลายที่อยู่)
+- User — Cart: 1 : 1 (cart ที่ active)
+- Cart — CartItem: 1 : N
+- User — Order: 1 : N
+- Order — OrderItem: 1 : N
+- Order — Payment: 1 : 1
+- Order — Address: N : 1 (ออเดอร์หนึ่งชิ้นมีที่อยู่จัดส่งเดียว)
+- Category — Product: 1 : N
+- Product — ProductImage: 1 : N
+- Product — CartItem / OrderItem: 1 : N
+ 
+---
+ 
+## 6. หมายเหตุด้าน Business Rule ที่เกี่ยวข้องกับ Database
+ 
+1. ขณะสร้าง Order จะต้องลด `products.stock_qty` ภายใน transaction เดียวกัน (NFR-06 Data Integrity)
+2. `order_items.unit_price` ต้องบันทึกราคา ณ เวลาสั่งซื้อ เพื่อป้องกันราคาเปลี่ยนในอนาคตกระทบกับออเดอร์เก่า
+3. เมื่อ `payments.status = 'paid'` ควร trigger เปลี่ยน `orders.status` เป็น "Processing"
+4. `carts` สามารถออกแบบให้ persist ต่อ user ได้ (FR-03.4) โดยดึง cart เดิมเมื่อ user login ใหม่
+ 
