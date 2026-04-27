@@ -13,43 +13,68 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
-      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to="/" className="text-xl font-bold text-indigo-600">DaviDice</Link>
+    <nav className="bg-white border-b border-ui-border sticky top-0 z-50" style={{ height: '64px' }}>
+      <div className="max-w-6xl mx-auto px-8 h-full flex items-center justify-between">
+        {/* Logo */}
+        <Link to="/" className="text-xl font-bold text-ink tracking-tight">
+          Davi<span className="text-brand">Dice</span>
+        </Link>
 
-        <div className="flex items-center gap-4">
-          <Link to="/products" className="text-gray-600 hover:text-indigo-600 text-sm">สินค้า</Link>
+        {/* Nav links + CTA */}
+        <div className="flex items-center gap-6">
+          <Link
+            to="/products"
+            className="text-sm font-semibold text-copy hover:text-ink transition-colors duration-200"
+          >
+            สินค้า
+          </Link>
 
           {user ? (
             <>
-              <Link to="/cart" className="relative text-gray-600 hover:text-indigo-600 text-sm">
+              <Link
+                to="/cart"
+                className="relative text-sm font-semibold text-copy hover:text-ink transition-colors duration-200"
+              >
                 ตะกร้า
                 {cart.items.length > 0 && (
-                  <span className="absolute -top-2 -right-3 bg-indigo-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  <span className="absolute -top-2 -right-3 bg-brand text-ink text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
                     {cart.items.length}
                   </span>
                 )}
               </Link>
-              <Link to="/orders" className="text-gray-600 hover:text-indigo-600 text-sm">ออเดอร์</Link>
+              <Link
+                to="/orders"
+                className="text-sm font-semibold text-copy hover:text-ink transition-colors duration-200"
+              >
+                ออเดอร์
+              </Link>
               {user.role === 'admin' && (
-                <Link to="/admin" className="text-indigo-600 font-medium text-sm">Admin</Link>
-              )}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">{user.name}</span>
-                <button
-                  onClick={handleLogout}
-                  className="text-sm text-red-500 hover:text-red-700"
+                <Link
+                  to="/admin"
+                  className="text-sm font-semibold text-brand hover:text-brand-dark transition-colors duration-200"
                 >
-                  ออกจากระบบ
-                </button>
-              </div>
+                  Admin
+                </Link>
+              )}
+              <span className="text-sm text-slate">{user.name}</span>
+              <button
+                onClick={handleLogout}
+                className="text-sm font-semibold text-slate hover:text-ink transition-colors duration-200"
+              >
+                ออกจากระบบ
+              </button>
             </>
           ) : (
             <>
-              <Link to="/login" className="text-gray-600 hover:text-indigo-600 text-sm">เข้าสู่ระบบ</Link>
+              <Link
+                to="/login"
+                className="text-sm font-semibold text-copy hover:text-ink transition-colors duration-200"
+              >
+                เข้าสู่ระบบ
+              </Link>
               <Link
                 to="/register"
-                className="bg-indigo-600 text-white text-sm px-4 py-1.5 rounded-lg hover:bg-indigo-700"
+                className="bg-brand text-ink text-sm font-semibold px-6 py-2 rounded-[50px] shadow-[rgb(153,153,153)_0px_2px_10px_-3px] hover:bg-brand-hover hover:text-white transition-colors duration-200"
               >
                 สมัครสมาชิก
               </Link>

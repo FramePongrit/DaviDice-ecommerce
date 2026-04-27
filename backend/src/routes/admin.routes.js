@@ -2,6 +2,7 @@ const express = require('express');
 const {
   getAllOrders, updateOrderStatus, getDashboard,
   getCategories, createCategory, deleteCategory,
+  getTopProducts, getIncomeByMonth, getLowStock,
 } = require('../controllers/admin.controller');
 const authenticate = require('../middlewares/authenticate');
 const authorizeAdmin = require('../middlewares/authorizeAdmin');
@@ -16,5 +17,9 @@ router.put('/orders/:id/status', updateOrderStatus);
 router.get('/categories', getCategories);
 router.post('/categories', createCategory);
 router.delete('/categories/:id', deleteCategory);
+
+router.get('/analytics/top-products', getTopProducts);
+router.get('/analytics/income', getIncomeByMonth);
+router.get('/analytics/low-stock', getLowStock);
 
 module.exports = router;

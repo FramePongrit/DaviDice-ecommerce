@@ -53,8 +53,12 @@ export default function AdminProducts() {
 
   const handleDelete = async (id) => {
     if (!confirm('ยืนยันลบสินค้านี้?')) return;
-    await api.delete(`/products/${id}`);
-    fetchProducts();
+    try {
+      await api.delete(`/products/${id}`);
+      fetchProducts();
+    } catch (err) {
+      alert(err.response?.data?.message || 'ไม่สามารถลบสินค้าได้');
+    }
   };
 
   return (

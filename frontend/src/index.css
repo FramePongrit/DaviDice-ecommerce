@@ -1,12 +1,53 @@
 @import "tailwindcss";
 
+/* ============================================================
+   Binance.US Design System — Theme Tokens (Tailwind v4)
+   ============================================================ */
+@theme {
+  /* Primary accent */
+  --color-brand:       #F0B90B;
+  --color-brand-gold:  #FFD000;
+  --color-brand-light: #F8D12F;
+  --color-brand-dark:  #D0980B;
+  --color-brand-hover: #1EAEDB;
+
+  /* Surface & background */
+  --color-snow:      #F5F5F5;
+  --color-dark-bg:   #222126;
+  --color-dark-card: #2B2F36;
+
+  /* Text */
+  --color-ink:   #1E2026;
+  --color-copy:  #32313A;
+  --color-slate: #848E9C;
+  --color-steel: #686A6C;
+  --color-muted: #777E90;
+
+  /* Semantic */
+  --color-crypto-green: #0ECB81;
+  --color-crypto-red:   #F6465D;
+
+  /* Borders */
+  --color-ui-border:  #E6E8EA;
+  --color-gold-border: #FFD000;
+}
+
+/* ============================================================
+   Global Base
+   ============================================================ */
 * {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
-  background-color: #f9fafb;
-  color: #111827;
+  font-family: 'BinancePlex', Arial, sans-serif;
+  background-color: #F5F5F5;
+  color: #1E2026;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular numerals for financial data */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
