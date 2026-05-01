@@ -41,6 +41,7 @@
 
 body {
   margin: 0;
+  front-size: 24;
   font-family: 'BinancePlex', Arial, sans-serif;
   background-color: #F5F5F5;
   color: #1E2026;

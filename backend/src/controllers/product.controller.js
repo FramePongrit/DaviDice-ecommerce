@@ -3,8 +3,10 @@ const { validationResult } = require('express-validator');
 
 // GET /api/products
 const getProducts = async (req, res) => {
-  const { keyword, category_id, min_price, max_price, page = 1, limit = 12 } = req.query;
+  const { keyword, category_id, min_price, max_price, sort, page = 1, limit = 12 } = req.query;
   const offset = (page - 1) * limit;
+  const sortMap = { name_asc: 'p.name ASC', price_asc: 'p.price ASC' };
+  const orderBy = sortMap[sort] || 'p.created_at DESC';
 
   let conditions = [];
   let params = [];
@@ -47,7 +49,7 @@ const getProducts = async (req, res) => {
        FROM products p
        LEFT JOIN categories c ON p.category_id = c.id
        ${where}
-       ORDER BY p.created_at DESC
+       ORDER BY ${orderBy}
        LIMIT $${idx} OFFSET $${idx + 1}`,
       [...params, limit, offset]
     );
@@ -94,6 +96,29 @@ const getProductById = async (req, res) => {
 const getCategories = async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM categories ORDER BY name');
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
+  }
+};
+
+// GET /api/products/bestsellers — top 5 by quantity sold
+const getBestSellers = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT p.id, p.name, p.price, p.stock_qty,
+              c.name AS category_name,
+              (SELECT image_url FROM product_images WHERE product_id = p.id AND is_primary = true LIMIT 1) AS image_url,
+              CAST(SUM(oi.quantity) AS INTEGER) AS total_sold
+       FROM order_items oi
+       JOIN orders o ON o.id = oi.order_id
+       JOIN products p ON p.id = oi.product_id
+       LEFT JOIN categories c ON c.id = p.category_id
+       WHERE o.status != 'cancelled'
+       GROUP BY p.id, p.name, p.price, p.stock_qty, c.name
+       ORDER BY total_sold DESC
+       LIMIT 5`
+    );
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
@@ -172,4 +197,4 @@ const deleteProduct = async (req, res) => {
   }
 };
 
-module.exports = { getProducts, getProductById, getCategories, createProduct, updateProduct, deleteProduct };
+module.exports = { getProducts, getProductById, getCategories, getBestSellers, createProduct, updateProduct, deleteProduct };

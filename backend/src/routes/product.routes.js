@@ -1,7 +1,7 @@
 const express = require('express');
 const { body } = require('express-validator');
 const {
-  getProducts, getProductById, getCategories,
+  getProducts, getProductById, getCategories, getBestSellers,
   createProduct, updateProduct, deleteProduct,
 } = require('../controllers/product.controller');
 const authenticate = require('../middlewares/authenticate');
@@ -18,6 +18,7 @@ const productValidation = [
 
 router.get('/', getProducts);
 router.get('/categories', getCategories);
+router.get('/bestsellers', getBestSellers);
 router.get('/:id', getProductById);
 router.post('/', authenticate, authorizeAdmin, productValidation, createProduct);
 router.put('/:id', authenticate, authorizeAdmin, productValidation, updateProduct);

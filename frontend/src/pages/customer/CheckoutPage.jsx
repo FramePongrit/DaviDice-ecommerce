@@ -40,8 +40,8 @@ export default function CheckoutPage() {
       const orderRes = await api.post('/orders', { shipping_address_id: parseInt(selectedAddress) });
       const orderId = orderRes.data.order_id;
       await api.post('/payments', { order_id: orderId, method: 'mock' });
-      await fetchCart();
       navigate(`/orders/${orderId}?success=1`);
+      fetchCart();
     } catch (err) {
       alert(err.response?.data?.message || 'เกิดข้อผิดพลาด');
     } finally {
