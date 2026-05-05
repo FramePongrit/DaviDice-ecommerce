@@ -201,8 +201,61 @@ const getLowStock = async (req, res) => {
   }
 };
 
+// PUT /api/admin/products/:id — อัปเดตสต็อก
+const updateProduct = async (req, res) => {
+  const { id } = req.params;
+  const { stock_qty, name, description, price } = req.body;
+
+  try {
+    let query = 'UPDATE products SET';
+    let params = [];
+    let idx = 1;
+    const updates = [];
+
+    if (stock_qty !== undefined) {
+      updates.push(`stock_qty = $${idx}`);
+      params.push(stock_qty);
+      idx++;
+    }
+    if (name) {
+      updates.push(`name = $${idx}`);
+      params.push(name);
+      idx++;
+    }
+    if (description) {
+      updates.push(`description = $${idx}`);
+      params.push(description);
+      idx++;
+    }
+    if (price) {
+      updates.push(`price = $${idx}`);
+      params.push(price);
+      idx++;
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ message: 'ไม่มีข้อมูลให้อัปเดต' });
+    }
+
+    query += ' ' + updates.join(', ') + ` WHERE id = $${idx} RETURNING *`;
+    params.push(id);
+
+    const result = await pool.query(query, params);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'ไม่พบสินค้า' });
+    }
+
+    console.log(`✅ Product ${id} updated: stock_qty=${stock_qty}`);
+    res.json({ message: 'อัปเดตสินค้าสำเร็จ', product: result.rows[0] });
+  } catch (err) {
+    console.error(`❌ Update product error: ${err.message}`);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
+  }
+};
+
 module.exports = {
   getAllOrders, updateOrderStatus, getDashboard,
   getCategories, createCategory, deleteCategory,
   getTopProducts, getIncomeByMonth, getLowStock,
+  updateProduct,
 };

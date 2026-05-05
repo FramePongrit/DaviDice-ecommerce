@@ -1,16 +1,22 @@
 import { Link } from 'react-router-dom';
 import Navbar from './Navbar';
+import Sidebar from './Sidebar';
 
 export default function Layout({ children }) {
   return (
     <div className="min-h-screen flex flex-col bg-snow">
       <Navbar />
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-        {children}
-      </main>
+      <div className="flex flex-1">
+        <Sidebar />
+        <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-8 lg:py-12">
+          <div className="w-full">
+            {children}
+          </div>
+        </main>
+      </div>
       <footer style={{ backgroundColor: '#222126' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-6 lg:py-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
 
             {/* Brand */}
             <div>
@@ -59,7 +65,7 @@ export default function Layout({ children }) {
           </div>
 
           {/* Bottom bar */}
-          <div className="pt-6 flex items-center justify-between" style={{ borderTop: '1px solid #2B2F36' }}>
+          <div className="pt-3 flex items-center justify-between" style={{ borderTop: '1px solid #2B2F36' }}>
             <p className="text-xs" style={{ color: '#848E9C' }}>© 2025 DaviDice — CPE241 Project</p>
             <div className="flex items-center gap-1">
               <span className="text-xs" style={{ color: '#848E9C' }}>Powered by</span>

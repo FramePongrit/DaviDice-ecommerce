@@ -51,6 +51,8 @@ export default function AdminDashboard() {
   const [lowStock, setLowStock]   = useState([]);
   const [topData, setTopData]     = useState({ month: '', products: [] });
   const [loading, setLoading]     = useState(true);
+  const [editProduct, setEditProduct] = useState(null);
+  const [newStock, setNewStock]   = useState('');
 
   const now = new Date();
   const defaultTo   = toYearMonth(now);
@@ -69,6 +71,24 @@ export default function AdminDashboard() {
       setLowStock(ls.data);
     }).finally(() => setLoading(false));
   }, []);
+
+  const handleEditStock = (product) => {
+    setEditProduct(product);
+    setNewStock(product.stock_qty.toString());
+  };
+
+  const handleSaveStock = async () => {
+    if (!editProduct || newStock === '') return;
+    try {
+      await api.put(`/admin/products/${editProduct.id}`, { stock_qty: parseInt(newStock) });
+      setLowStock(lowStock.map(p => 
+        p.id === editProduct.id ? { ...p, stock_qty: parseInt(newStock) } : p
+      ));
+      setEditProduct(null);
+    } catch (err) {
+      console.error('Failed to update stock:', err);
+    }
+  };
 
   useEffect(() => {
     api.get('/admin/analytics/income', { params: { from: incomeFrom, to: incomeTo } })
@@ -199,6 +219,7 @@ export default function AdminDashboard() {
                   <th className="pb-2 font-semibold">ชื่อสินค้า</th>
                   <th className="pb-2 font-semibold">หมวดหมู่</th>
                   <th className="pb-2 font-semibold text-right">คงเหลือ</th>
+                  <th className="pb-2 font-semibold text-center">จัดการ</th>
                 </tr>
               </thead>
               <tbody>
@@ -216,6 +237,49 @@ export default function AdminDashboard() {
                       }`}>
                         {p.stock_qty === 0 ? 'หมดแล้ว' : `${p.stock_qty} ชิ้น`}
                       </span>
+                    </td>
+                    <td className="py-2 text-center">
+                      <button
+                        onClick={() => handleEditStock(p)}
+                        className="px-3 py-1 bg-brand text-ink rounded-[6px] text-xs font-semibold hover:bg-brand-hover hover:text-white transition-colors duration-200"
+                      >
+            
+
+      {/* Edit stock modal */}
+      {editProduct && (
+        <div className="fixed inset-0 bg-white/20 backdrop-blur flex items-center justify-center z-50 rounded-[12px]">
+          <div className={`${cardCls} w-96 max-w-full`}>
+            <h3 className="text-lg font-semibold text-ink mb-4">แก้ไข Stock - {editProduct.name}</h3>
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-copy mb-2">จำนวนคงเหลือ (ชิ้น)</label>
+              <input
+                type="number"
+                value={newStock}
+                onChange={e => setNewStock(e.target.value)}
+                min="0"
+                className={`${inputCls} w-full`}
+                placeholder="0"
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setEditProduct(null)}
+                className="flex-1 px-4 py-2 bg-snow text-ink rounded-[8px] font-semibold hover:bg-slate/20 transition-colors duration-200"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={handleSaveStock}
+                className="flex-1 px-4 py-2 bg-brand text-ink rounded-[8px] font-semibold hover:bg-brand-hover hover:text-white transition-colors duration-200"
+              >
+                บันทึก
+              </button>
+            </div>
+          </div>
+        </div>
+      )}            ✏️ จัดการ
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -255,6 +319,41 @@ export default function AdminDashboard() {
           })}
         </div>
       </div>
+
+      {/* Edit stock modal */}
+      {editProduct && (
+        <div className="fixed inset-0 bg-white/20 backdrop-blur flex items-center justify-center z-50">
+          <div className={`${cardCls} w-96 max-w-full mx-4`}>
+            <h3 className="text-lg font-semibold text-ink mb-4">แก้ไข Stock - {editProduct.name}</h3>
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-copy mb-2">จำนวนคงเหลือ (ชิ้น)</label>
+              <input
+                type="number"
+                value={newStock}
+                onChange={e => setNewStock(e.target.value)}
+                min="0"
+                className={`${inputCls} w-full`}
+                placeholder="0"
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setEditProduct(null)}
+                className="flex-1 px-4 py-2 bg-snow text-ink rounded-[8px] font-semibold hover:bg-slate/20 transition-colors duration-200"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={handleSaveStock}
+                className="flex-1 px-4 py-2 bg-brand text-ink rounded-[8px] font-semibold hover:bg-brand-hover hover:text-white transition-colors duration-200"
+              >
+                บันทึก
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Quick nav */}
       <div className="flex gap-4">

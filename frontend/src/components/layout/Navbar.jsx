@@ -14,9 +14,9 @@ export default function Navbar() {
 
   return (
     <nav className="bg-white border-b border-ui-border sticky top-0 z-50" style={{ height: '64px' }}>
-      <div className="max-w-6xl mx-auto px-8 h-full flex items-center justify-between">
+      <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 h-full flex items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="text-xl font-bold text-ink tracking-tight">
+        <Link to="/" className="text-4xl font-bold text-ink tracking-tight">
           Davi<span className="text-brand">Dice</span>
         </Link>
 
@@ -24,18 +24,20 @@ export default function Navbar() {
         <div className="flex items-center gap-6">
           <Link
             to="/products"
-            className="text-sm font-semibold text-copy hover:text-ink transition-colors duration-200"
+            className="text-2xl hover:scale-110 transition-transform duration-200"
+            title="สินค้า"
           >
-            สินค้า
+            🛍️
           </Link>
 
           {user ? (
             <>
               <Link
                 to="/cart"
-                className="relative text-sm font-semibold text-copy hover:text-ink transition-colors duration-200"
+                className="relative text-2xl hover:scale-110 transition-transform duration-200"
+                title="ตะกร้าสินค้า"
               >
-                ตะกร้า
+                🛒
                 {cart.items.length > 0 && (
                   <span className="absolute -top-2 -right-3 bg-brand text-ink text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
                     {cart.items.length}
@@ -44,16 +46,18 @@ export default function Navbar() {
               </Link>
               <Link
                 to="/orders"
-                className="text-sm font-semibold text-copy hover:text-ink transition-colors duration-200"
+                className="text-2xl hover:scale-110 transition-transform duration-200"
+                title="ประวัติการสั่งซื้อ"
               >
-                ออเดอร์
+                📦
               </Link>
               {user.role === 'admin' && (
                 <Link
                   to="/admin"
-                  className="text-sm font-semibold text-brand hover:text-brand-dark transition-colors duration-200"
+                  className="text-2xl hover:scale-110 transition-transform duration-200"
+                  title="Admin Dashboard"
                 >
-                  Admin
+                  ⚙️
                 </Link>
               )}
               <span className="text-sm text-slate">{user.name}</span>

@@ -7,7 +7,7 @@ const generateToken = (user) => {
   return jwt.sign(
     { id: user.id, email: user.email, role: user.role_name },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN }
+    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
 };
 
@@ -21,12 +21,17 @@ const register = async (req, res) => {
   const { name, email, password, phone } = req.body;
 
   try {
+    console.log(`📝 Register attempt: ${name} (${email})`);
+    
     const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
     if (existing.rows.length > 0) {
+      console.log(`⚠️  Email already exists: ${email}`);
       return res.status(409).json({ message: 'อีเมลนี้ถูกใช้งานแล้ว' });
     }
 
+    console.log(`🔒 Hashing password for: ${email}`);
     const password_hash = await bcrypt.hash(password, 12);
+    console.log(`✅ Password hashed: ${password_hash.substring(0, 20)}...`);
 
     const result = await pool.query(
       `INSERT INTO users (role_id, name, email, password_hash, phone)
@@ -39,12 +44,14 @@ const register = async (req, res) => {
     user.role_name = 'customer';
     const token = generateToken(user);
 
+    console.log(`🎉 Registration successful for: ${email}`);
     res.status(201).json({
       message: 'สมัครสมาชิกสำเร็จ',
       token,
       user: { id: user.id, name: user.name, email: user.email, role: 'customer' },
     });
   } catch (err) {
+    console.error(`⚠️  Register error: ${err.message}`);
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
   }
 };
@@ -59,6 +66,8 @@ const login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
+    console.log(`🔍 Login attempt: ${email}`);
+    
     const result = await pool.query(
       `SELECT u.*, r.name AS role_name
        FROM users u JOIN roles r ON u.role_id = r.id
@@ -67,16 +76,22 @@ const login = async (req, res) => {
     );
 
     if (result.rows.length === 0) {
+      console.log(`❌ User not found: ${email}`);
       return res.status(401).json({ message: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' });
     }
 
     const user = result.rows[0];
+    console.log(`✅ User found: ${user.name}, role: ${user.role_name}`);
+    
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
+      console.log(`❌ Password mismatch for: ${email}`);
       return res.status(401).json({ message: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' });
     }
 
+    console.log(`🔐 Password correct for: ${email}`);
     const token = generateToken(user);
+    console.log(`🎫 Token generated for: ${email}`);
 
     res.json({
       message: 'เข้าสู่ระบบสำเร็จ',
@@ -84,6 +99,7 @@ const login = async (req, res) => {
       user: { id: user.id, name: user.name, email: user.email, role: user.role_name },
     });
   } catch (err) {
+    console.error(`⚠️  Login error: ${err.message}`);
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
   }
 };

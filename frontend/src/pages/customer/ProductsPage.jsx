@@ -8,6 +8,7 @@ export default function ProductsPage() {
   const [categories, setCategories] = useState([]);
   const [bestSellers, setBestSellers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [carouselIndex, setCarouselIndex] = useState(0);
   const [filters, setFilters] = useState({ keyword: '', category_id: '', min_price: '', max_price: '', sort: '' });
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -62,59 +63,106 @@ export default function ProductsPage() {
 
   const controlCls = 'border border-ui-border rounded-lg px-3 py-2 text-sm text-ink bg-white focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-black transition-colors';
 
+  // Carousel handlers
+  const prevCarousel = () => {
+    setCarouselIndex(prev => (prev === 0 ? bestSellers.length - 1 : prev - 1));
+  };
+
+  const nextCarousel = () => {
+    setCarouselIndex(prev => (prev === bestSellers.length - 1 ? 0 : prev + 1));
+  };
+
   return (
     <div className="space-y-6">
 
-      {/* ── Hero Banner ── */}
-      <div
-        className="rounded-2xl px-8 py-10 flex items-center justify-between"
-        style={{ backgroundColor: '#222126' }}
-      >
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: '#F0B90B' }}>
-            DaviDice Store
-          </p>
-          <h1 className="text-4xl font-bold text-white leading-none">สินค้าทั้งหมด</h1>
-          <p className="text-sm mt-2" style={{ color: '#848E9C' }}>
-            เลือกซื้อลูกเต๋าและอุปกรณ์เกมคุณภาพสูง
-          </p>
-        </div>
-        <div className="hidden md:flex items-center gap-8">
-          {[{ label: 'สินค้า', value: 'หลากหลาย' }, { label: 'จัดส่ง', value: 'ทั่วประเทศ' }].map(({ label, value }) => (
-            <div key={label} className="text-center">
-              <p className="text-lg font-bold" style={{ color: '#F0B90B' }}>{value}</p>
-              <p className="text-xs" style={{ color: '#848E9C' }}>{label}</p>
-            </div>
+      {/* ── Category Tabs ── */}
+      <div className="bg-white rounded-lg border border-ui-border p-3 overflow-x-auto">
+        <div className="flex gap-2 min-w-min">
+          <button
+            onClick={() => { setFilters({ ...filters, category_id: '' }); setPage(1); searchProducts({ ...filters, category_id: '' }, 1); }}
+            className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
+              filters.category_id === '' 
+                ? 'bg-brand text-ink' 
+                : 'bg-snow text-copy hover:bg-gray-200'
+            }`}
+          >
+            🔥 ทั้งหมด
+          </button>
+          {categories.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => { setFilters({ ...filters, category_id: cat.id }); setPage(1); searchProducts({ ...filters, category_id: cat.id }, 1); }}
+              className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
+                filters.category_id === cat.id 
+                  ? 'bg-brand text-ink' 
+                  : 'bg-snow text-copy hover:bg-gray-200'
+              }`}
+            >
+              {cat.name}
+            </button>
           ))}
         </div>
       </div>
 
-      {/* ── Best Sellers Strip ── */}
+      {/* ── Carousel Banner ── */}
       {bestSellers.length > 0 && (
-        <div>
-          <h2 className="text-sm font-bold text-ink mb-3 flex items-center gap-1.5">
-            <span style={{ color: '#F0B90B' }}>★</span> สินค้าขายดี
-          </h2>
-          <div className="flex gap-3 overflow-x-auto pb-1">
-            {bestSellers.map(product => (
+        <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-slate-800 to-slate-900 h-72">
+          {/* Carousel content */}
+          <div className="h-full flex items-center justify-between px-8 lg:px-16">
+            {/* Left section */}
+            <div className="flex-1 text-white z-10">
+              <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: '#F0B90B' }}>
+                ⭐ ลูกค้าชอบมากที่สุด
+              </p>
+              <h2 className="text-3xl lg:text-4xl font-bold leading-tight mb-4">
+                {bestSellers[carouselIndex]?.name}
+              </h2>
+              <p className="text-lg text-gray-300 mb-6">
+                ฿{Number(bestSellers[carouselIndex]?.price || 0).toLocaleString()}
+              </p>
               <Link
-                key={product.id}
-                to={`/products/${product.id}`}
-                className="flex-shrink-0 w-36 bg-white rounded-xl border border-ui-border overflow-hidden hover:shadow-md transition-shadow"
+                to={`/products/${bestSellers[carouselIndex]?.id}`}
+                className="inline-block bg-brand text-ink font-semibold px-6 py-3 rounded-lg hover:bg-brand-hover hover:text-white transition-colors"
               >
-                <div className="aspect-square overflow-hidden bg-snow">
-                  {product.image_url
-                    ? <img src={product.image_url} alt={product.name} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
-                    : <div className="w-full h-full flex items-center justify-center text-3xl text-slate">📦</div>
-                  }
-                </div>
-                <div className="p-2">
-                  <p className="text-xs font-semibold text-ink truncate">{product.name}</p>
-                  <p className="text-xs font-bold mt-0.5 tabular-nums" style={{ color: '#F0B90B' }}>
-                    ฿{Number(product.price).toLocaleString()}
-                  </p>
-                </div>
+                ดูรายละเอียด →
               </Link>
+            </div>
+
+            {/* Right section - image */}
+            <div className="hidden lg:flex flex-1 items-center justify-end h-full">
+              {bestSellers[carouselIndex]?.image_url && (
+                <img
+                  src={bestSellers[carouselIndex].image_url}
+                  alt={bestSellers[carouselIndex].name}
+                  className="h-full object-contain drop-shadow-2xl"
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Carousel controls */}
+          <button
+            onClick={prevCarousel}
+            className="absolute left-4 top-1/2 transform -translate-y-1/2 z-20 bg-white/80 hover:bg-white w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg transition-all shadow-md"
+          >
+            ←
+          </button>
+          <button
+            onClick={nextCarousel}
+            className="absolute right-4 top-1/2 transform -translate-y-1/2 z-20 bg-white/80 hover:bg-white w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg transition-all shadow-md"
+          >
+            →
+          </button>
+
+          {/* Dots indicator */}
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-1.5 z-10">
+            {bestSellers.map((_, idx) => (
+              <div
+                key={idx}
+                className={`w-2 h-2 rounded-full transition-all ${
+                  idx === carouselIndex ? 'bg-brand w-6' : 'bg-gray-400'
+                }`}
+              />
             ))}
           </div>
         </div>
@@ -184,7 +232,19 @@ export default function ProductsPage() {
         </button>
       </form>
 
-      {/* ── Product Grid ── */}
+      {/* ── Section Title ── */}
+      <div className="flex items-center justify-between pt-4">
+        <h2 className="text-xl font-bold text-ink">📦 สินค้าทั้งหมด</h2>
+        {/* Optional: Show active filters count */}
+        {(filters.keyword || filters.category_id || filters.min_price || filters.max_price) && (
+          <button
+            onClick={() => { setFilters({ keyword: '', category_id: '', min_price: '', max_price: '', sort: '' }); setPage(1); }}
+            className="text-sm text-brand font-semibold hover:underline"
+          >
+            ล้างตัวกรอง ✕
+          </button>
+        )}
+      </div>
       {loading ? (
         <div className="text-center py-24 text-slate">กำลังโหลด...</div>
       ) : products.length === 0 ? (

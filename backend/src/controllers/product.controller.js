@@ -107,7 +107,7 @@ const getBestSellers = async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT p.id, p.name, p.price, p.stock_qty,
-              c.name AS category_name,
+              c.id AS category_id, c.name AS category_name,
               (SELECT image_url FROM product_images WHERE product_id = p.id AND is_primary = true LIMIT 1) AS image_url,
               CAST(SUM(oi.quantity) AS INTEGER) AS total_sold
        FROM order_items oi
@@ -115,7 +115,7 @@ const getBestSellers = async (req, res) => {
        JOIN products p ON p.id = oi.product_id
        LEFT JOIN categories c ON c.id = p.category_id
        WHERE o.status != 'cancelled'
-       GROUP BY p.id, p.name, p.price, p.stock_qty, c.name
+       GROUP BY p.id, p.name, p.price, p.stock_qty, c.id, c.name
        ORDER BY total_sold DESC
        LIMIT 5`
     );

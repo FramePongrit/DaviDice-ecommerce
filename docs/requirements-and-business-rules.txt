@@ -1,0 +1,451 @@
+DaviDice E-Commerce
+Requirements and Business Rules
+
+Last updated: 2026-05-01
+Source reviewed: backend routes/controllers, frontend pages/context, database schema, seed data
+
+1. Project Overview
+
+DaviDice is a full-stack e-commerce web application for selling dice, cards, board games, RPG products, and accessories.
+
+Main stack:
+- Frontend: React + Vite
+- Backend: Node.js + Express
+- Database: PostgreSQL
+- Authentication: JWT
+- Payment: Mock payment
+
+The system supports product browsing, member registration/login, cart management, checkout, mock payment, customer order tracking, and admin management.
+
+2. Actors and Roles
+
+2.1 Guest
+- Can view product list.
+- Can view product details.
+- Can search/filter products.
+- Can view categories and best sellers.
+- Cannot access cart, checkout, orders, or admin pages.
+- Must log in before adding products to cart successfully.
+
+2.2 Customer
+- Can register and log in.
+- Can manage own cart.
+- Can create shipping addresses.
+- Can place orders from cart.
+- Can pay orders through mock payment.
+- Can view own order history and order detail.
+- Cannot access admin routes.
+
+2.3 Admin
+- Can log in as admin.
+- Can access admin dashboard.
+- Can view all orders.
+- Can update order status.
+- Can create/update/delete products.
+- Can create/delete categories.
+- Can view analytics: revenue by month, top products, low stock.
+
+3. Main User Flows
+
+3.1 Register and Login
+- User opens register page.
+- User submits name, email, password, and optional phone.
+- Backend validates required fields and password length.
+- Backend rejects duplicate email.
+- Password is hashed with bcrypt before storing.
+- New users are assigned customer role.
+- Backend returns JWT token and user data.
+- Frontend stores token and user data in localStorage.
+
+3.2 Browse Products
+- User opens /products.
+- Frontend loads categories, best sellers, and product list.
+- User can search by keyword.
+- User can filter by category and price range.
+- User can sort by latest, name ascending, or price ascending.
+- Product list is paginated.
+- User can open product detail page.
+
+3.3 Add to Cart
+- Customer clicks add to cart from product list or detail page.
+- Backend checks product exists.
+- Backend checks requested quantity is at least 1.
+- Backend checks available stock.
+- Backend creates a cart for the user if none exists.
+- If the product already exists in cart, backend increases quantity.
+- Cart quantity cannot exceed product stock.
+
+3.4 Manage Cart
+- Customer can view cart items and total.
+- Customer can update item quantity.
+- Customer can remove an item.
+- Customer can clear all cart items.
+- Quantity must be greater than 0.
+- Quantity cannot exceed stock.
+
+3.5 Checkout and Payment
+- Customer opens checkout page.
+- Customer selects existing address or creates a new address.
+- Customer confirms order.
+- Backend creates order from cart inside a database transaction.
+- Backend checks selected address belongs to the customer.
+- Backend checks cart is not empty.
+- Backend checks stock for all cart items.
+- Backend inserts order and order_items.
+- Backend reduces product stock.
+- Backend clears cart.
+- Frontend immediately calls mock payment endpoint.
+- Payment records amount and marks payment as paid.
+- Order status changes from pending to processing after payment.
+- Frontend redirects to order detail with success state.
+
+3.6 Customer Order Tracking
+- Customer can view own order history.
+- Customer can view detail for own orders only.
+- Order detail includes items, shipping address, payment status, and order status.
+
+3.7 Admin Order Management
+- Admin opens admin orders page.
+- Admin can filter orders by status.
+- Admin can update order status.
+- Valid statuses are pending, processing, shipped, delivered, cancelled.
+
+3.8 Admin Product Management
+- Admin can add products with name, price, stock, category, optional description, and optional image URL.
+- Admin can edit existing products.
+- Admin can delete products.
+- Product price must be non-negative.
+- Product stock must be a non-negative integer.
+- Product must belong to a category.
+
+3.9 Admin Category Management
+- Admin can create categories with name and optional description.
+- Category name is required.
+- Category name must be unique at database level.
+- Admin can delete categories.
+- Deleting a category will fail if products still reference it.
+
+3.10 Admin Dashboard and Analytics
+- Dashboard shows total orders, total revenue, total products, and recent orders.
+- Revenue is calculated from paid payments and order item snapshots.
+- Top products are calculated by total sold quantity for a selected month, excluding cancelled orders.
+- Low stock list shows products at or below threshold, default threshold 10.
+
+4. Functional Requirements
+
+FR-01 Authentication
+- System shall allow users to register with name, email, password, and optional phone.
+- System shall validate email format.
+- System shall require password length of at least 6 characters.
+- System shall prevent duplicate email registration.
+- System shall hash passwords before storing.
+- System shall allow users to log in with email and password.
+- System shall return JWT token after successful register/login.
+- System shall allow authenticated users to view own profile.
+- System shall allow authenticated users to update name and optional phone.
+
+FR-02 Authorization
+- System shall protect customer routes using JWT.
+- System shall protect admin routes using JWT and admin role.
+- System shall redirect unauthenticated frontend users to login for protected pages.
+- System shall redirect non-admin users away from admin pages.
+
+FR-03 Product Catalog
+- System shall list products with category, price, stock, and primary image.
+- System shall support keyword search by product name or description.
+- System shall support category filter.
+- System shall support min/max price filter.
+- System shall support sorting by latest, name ascending, and price ascending.
+- System shall support pagination.
+- System shall show product detail with images.
+- System shall show best sellers based on order items from non-cancelled orders.
+
+FR-04 Cart
+- System shall create one active cart per customer.
+- System shall allow customer to view cart.
+- System shall allow customer to add product to cart.
+- System shall merge quantity when same product is added again.
+- System shall allow customer to update cart item quantity.
+- System shall allow customer to remove cart item.
+- System shall allow customer to clear cart.
+- System shall calculate subtotal per item and total cart price.
+
+FR-05 Address
+- System shall allow customer to list own shipping addresses.
+- System shall allow customer to create shipping address.
+- System shall require recipient name, street, province, and postal code.
+- System stores sub-district and district as required database fields, so frontend should send them.
+- System shall support default address flag.
+- If a new address is marked default, other addresses for that user are unset as default.
+
+FR-06 Order
+- System shall create order from authenticated customer's cart.
+- System shall require shipping address.
+- System shall only allow customer to use own address.
+- System shall reject empty cart.
+- System shall check stock before order creation.
+- System shall store order item unit price as a snapshot.
+- System shall reduce stock after order creation.
+- System shall clear cart after order creation.
+- System shall allow customer to list own orders.
+- System shall allow customer to view own order detail.
+- System shall allow admin to view any order detail.
+
+FR-07 Payment
+- System shall process mock payment for customer order.
+- System shall require order_id.
+- System shall only allow customer to pay own order.
+- System shall only allow payment when order status is pending.
+- System shall prevent duplicate payment for same order.
+- System shall create payment with status paid and paid_at timestamp.
+- System shall update order status to processing after successful payment.
+
+FR-08 Admin
+- System shall allow admin to view all orders.
+- System shall allow admin to filter orders by status.
+- System shall allow admin to update order status.
+- System shall allow admin to create/update/delete products.
+- System shall allow admin to create/delete categories.
+- System shall show dashboard summary.
+- System shall show monthly gross income.
+- System shall show monthly top products.
+- System shall show low stock products.
+
+5. Business Rules
+
+BR-01 User and Role Rules
+- Every user must have exactly one role.
+- Available roles are admin and customer.
+- New self-registered users always receive customer role.
+- Admin users are seeded by the database seed file.
+- Email must be unique.
+- Passwords must never be stored as plain text.
+
+BR-02 Authentication and Session Rules
+- JWT token is required for cart, address, order, payment, and admin APIs.
+- JWT payload contains user id, email, and role.
+- Token expiry defaults to 7 days.
+- Frontend stores token and user object in localStorage.
+- If API returns 401, frontend clears token/user and redirects to login.
+
+BR-03 Product Rules
+- Product must have a name.
+- Product price must be 0 or greater.
+- Product stock must be 0 or greater.
+- Product must belong to a valid category.
+- Product can have multiple images.
+- Only one primary image is used in list views.
+- Product with stock 0 cannot be added to cart from frontend.
+- Backend also blocks adding quantity greater than available stock.
+
+BR-04 Category Rules
+- Category name is required and unique.
+- Category description is optional.
+- A category referenced by products cannot be deleted unless dependent products are handled first.
+
+BR-05 Cart Rules
+- Each user has at most one cart.
+- Cart item quantity must be greater than 0.
+- Same product cannot appear twice in the same cart; quantity is merged.
+- Cart item quantity cannot exceed product stock.
+- Cart total is calculated from current product prices, not stored separately.
+- Cart persists in database after logout/login.
+
+BR-06 Address Rules
+- Address belongs to one user.
+- User can only view and use own addresses.
+- Recipient name, street, sub-district, district, province, and postal code are required by database schema.
+- The current backend validation explicitly checks recipient name, street, province, and postal code.
+- Only one address should be default per user when is_default is used.
+
+BR-07 Order Rules
+- Order can only be created from a non-empty cart.
+- Shipping address must belong to the ordering user.
+- Stock is checked before creating order.
+- Order creation is transactional.
+- If any item has insufficient stock, entire order is cancelled before commit.
+- Order item unit_price is fixed at order time.
+- Product stock is reduced after order creation.
+- Cart is cleared after order creation.
+- Initial order status is pending.
+
+BR-08 Payment Rules
+- Payment is mock payment in current implementation.
+- One order can have only one payment.
+- Payment amount equals order total from order_items.
+- Payment can only be made by the owner of the order.
+- Payment can only be processed while order status is pending.
+- Successful payment sets payment status to paid.
+- Successful payment sets order status to processing.
+
+BR-09 Order Status Rules
+- Valid order statuses: pending, processing, shipped, delivered, cancelled.
+- Admin can update an order to any valid status.
+- Customer cannot update order status.
+- Cancelled orders are excluded from best seller analytics.
+- Current implementation does not restore stock automatically when an order is cancelled.
+
+BR-10 Revenue and Analytics Rules
+- Revenue is counted only from payments with status paid.
+- Revenue uses order item price snapshots, not current product prices.
+- Top products count total sold quantity from non-cancelled orders.
+- Monthly analytics use YYYY-MM format.
+- Low stock threshold defaults to 10 if not provided.
+
+6. Data Entities
+
+roles
+- id
+- name
+- description
+
+users
+- id
+- role_id
+- name
+- email
+- password_hash
+- phone
+- created_at
+
+addresses
+- id
+- user_id
+- recipient_name
+- phone
+- street
+- sub_district
+- district
+- province
+- postal_code
+- is_default
+
+categories
+- id
+- name
+- description
+
+products
+- id
+- category_id
+- name
+- description
+- price
+- stock_qty
+- created_at
+
+product_images
+- id
+- product_id
+- image_url
+- is_primary
+- sort_order
+
+carts
+- id
+- user_id
+- created_at
+- updated_at
+
+cart_items
+- id
+- cart_id
+- product_id
+- quantity
+
+orders
+- id
+- user_id
+- shipping_address_id
+- status
+- created_at
+
+order_items
+- id
+- order_id
+- product_id
+- quantity
+- unit_price
+
+payments
+- id
+- order_id
+- amount
+- method
+- status
+- paid_at
+
+7. API Endpoints
+
+Public
+- GET /api/health
+- POST /api/auth/register
+- POST /api/auth/login
+- GET /api/products
+- GET /api/products/categories
+- GET /api/products/bestsellers
+- GET /api/products/:id
+
+Authenticated Customer
+- GET /api/auth/me
+- PUT /api/auth/me
+- GET /api/cart
+- POST /api/cart
+- PUT /api/cart/:itemId
+- DELETE /api/cart/:itemId
+- DELETE /api/cart/clear
+- GET /api/addresses
+- POST /api/addresses
+- GET /api/orders
+- GET /api/orders/:id
+- POST /api/orders
+- POST /api/payments
+
+Admin
+- POST /api/products
+- PUT /api/products/:id
+- DELETE /api/products/:id
+- GET /api/admin/dashboard
+- GET /api/admin/orders
+- PUT /api/admin/orders/:id/status
+- GET /api/admin/categories
+- POST /api/admin/categories
+- DELETE /api/admin/categories/:id
+- GET /api/admin/analytics/top-products
+- GET /api/admin/analytics/income
+- GET /api/admin/analytics/low-stock
+
+8. Frontend Routes
+
+Public
+- /
+- /login
+- /register
+- /products
+- /products/:id
+
+Customer protected
+- /cart
+- /checkout
+- /orders
+- /orders/:id
+
+Admin protected
+- /admin
+- /admin/orders
+- /admin/products
+- /admin/categories
+
+9. Known Gaps and Notes
+
+- Existing Thai text in several source files appears mojibake/encoding-corrupted.
+- Existing docs/requirements.md also contains mojibake and does not fully match current implementation.
+- Product image upload is not implemented; admin enters image URL.
+- Payment is mock only; no real payment gateway integration.
+- Order cancellation does not restore stock.
+- Admin can jump order status to any valid status; no enforced status transition order.
+- Address backend validation is weaker than database NOT NULL constraints for sub_district and district.
+- Product deletion may fail if referenced by order_items because order_items.product_id references products without ON DELETE CASCADE in schema.
+- No automated tests are currently configured.
+- No API documentation file such as Swagger/Postman collection is present.
+- Frontend text and some UI symbols may need encoding cleanup before presentation/demo.
