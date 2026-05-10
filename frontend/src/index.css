@@ -1,18 +1,21 @@
 @import "tailwindcss";
 
 /* ============================================================
-   Binance.US Design System — Theme Tokens (Tailwind v4)
+   DaviDice Design System - Theme Tokens (Tailwind v4)
    ============================================================ */
 @theme {
   /* Primary accent */
-  --color-brand:       #F0B90B;
-  --color-brand-gold:  #FFD000;
-  --color-brand-light: #F8D12F;
-  --color-brand-dark:  #D0980B;
-  --color-brand-hover: #1EAEDB;
+  --color-brand:       #24883B;
+  --color-brand-gold:  #E5D64B;
+  --color-brand-light: #F3F8C8;
+  --color-brand-dark:  #17672B;
+  --color-brand-hover: #1D7432;
 
   /* Surface & background */
-  --color-snow:      #F5F5F5;
+  --color-snow:      #F7F8F3;
+  --color-app-bg:    #EAE0CF;
+  --color-panel:     #FAFAF7;
+  --color-warm-card: #F5F8C8;
   --color-dark-bg:   #222126;
   --color-dark-card: #2B2F36;
 
@@ -28,27 +31,109 @@
   --color-crypto-red:   #F6465D;
 
   /* Borders */
-  --color-ui-border:  #E6E8EA;
-  --color-gold-border: #FFD000;
+  --color-ui-border:   #E8E8DD;
+  --color-gold-border: #E5D64B;
 }
 
-/* ============================================================
-   Global Base
-   ============================================================ */
 * {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  front-size: 24;
+  font-size: 16px;
   font-family: 'BinancePlex', Arial, sans-serif;
-  background-color: #F5F5F5;
+  background-color: #EAE0CF;
   color: #1E2026;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Tabular numerals for financial data */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+@layer components {
+  .app-shell {
+    background-color: #EAE0CF;
+  }
+
+  .app-panel {
+    background-color: #FAFAF7;
+    border: 1px solid rgba(30, 32, 38, 0.04);
+    border-radius: 28px;
+    box-shadow: 0 24px 70px rgba(47, 79, 45, 0.1);
+  }
+
+  .app-card {
+    background-color: #FFFFFF;
+    border: 1px solid rgba(30, 32, 38, 0.06);
+    border-radius: 20px;
+    box-shadow: 0 16px 40px rgba(17, 24, 39, 0.045);
+  }
+
+  .app-card-soft {
+    background-color: #F5F8C8;
+    border: 1px solid rgba(36, 136, 59, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 16px 40px rgba(17, 24, 39, 0.035);
+  }
+
+  .app-input {
+    border: 1px solid rgba(30, 32, 38, 0.08);
+    border-radius: 14px;
+    background-color: #FFFFFF;
+    color: #1E2026;
+    outline: none;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .app-input:focus {
+    border-color: #24883B;
+    box-shadow: 0 0 0 4px rgba(36, 136, 59, 0.12);
+  }
+
+  .app-button {
+    background-color: #E5D64B;
+    color: #1E2026;
+    border-radius: 14px;
+    font-weight: 700;
+    transition: background-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+    box-shadow: 0 12px 24px rgba(229, 214, 75, 0.22);
+  }
+
+  .app-button:hover {
+    background-color: #24883B;
+    color: #FFFFFF;
+    transform: translateY(-1px);
+  }
+
+  .app-button-secondary {
+    background-color: #FFFFFF;
+    color: #32313A;
+    border: 1px solid rgba(30, 32, 38, 0.08);
+    border-radius: 14px;
+    font-weight: 700;
+    transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+  }
+
+  .app-button-secondary:hover {
+    background-color: #F3F8C8;
+    border-color: rgba(36, 136, 59, 0.18);
+    color: #17672B;
+  }
 }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
+import { EmptyState } from '../../components/ui/Feedback';
 
 export default function CartPage() {
   const { cart, updateItem, removeItem, clearCart } = useCart();
@@ -40,27 +41,30 @@ export default function CartPage() {
   };
 
   if (!user) return (
-    <div className="text-center py-20">
-      <p className="text-gray-500 mb-4">กรุณาเข้าสู่ระบบก่อน</p>
-      <button onClick={() => navigate('/login')} className="bg-indigo-600 text-white px-6 py-2 rounded-lg">เข้าสู่ระบบ</button>
-    </div>
+    <EmptyState
+      title="Sign in required"
+      message="Please sign in before viewing your cart."
+      actionLabel="Sign in"
+      onAction={() => navigate('/login')}
+    />
   );
 
   if (cart.items.length === 0) return (
-    <div className="text-center py-20">
-      <p className="text-4xl mb-4">🛒</p>
-      <p className="text-gray-500 mb-4">ตะกร้าของคุณว่างเปล่า</p>
-      <button onClick={() => navigate('/products')} className="bg-indigo-600 text-white px-6 py-2 rounded-lg">เลือกซื้อสินค้า</button>
-    </div>
+    <EmptyState
+      title="Your cart is empty"
+      message="Browse dice, board games, card games, and accessories to start an order."
+      actionLabel="Browse products"
+      onAction={() => navigate('/products')}
+    />
   );
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">ตะกร้าสินค้า</h1>
+      <h1 className="text-2xl font-bold text-gray-800 mb-6">Shopping Cart</h1>
 
       <div className="space-y-3 mb-6">
         {cart.items.map(item => (
-          <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center gap-4">
+          <div key={item.id} className="app-card p-4 flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
               {item.image_url ? (
                 <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
@@ -71,7 +75,7 @@ export default function CartPage() {
 
             <div className="flex-1 min-w-0">
               <p className="font-medium text-gray-800 truncate">{item.name}</p>
-              <p className="text-sm text-indigo-600">฿{Number(item.price).toLocaleString()}</p>
+              <p className="text-sm font-bold text-brand">THB {Number(item.price).toLocaleString()}</p>
             </div>
 
             {/* Quantity control with typeable input */}
@@ -97,14 +101,14 @@ export default function CartPage() {
               >+</button>
             </div>
 
-            <p className="text-sm font-bold text-gray-700 w-20 text-right">
-              ฿{Number(item.subtotal).toLocaleString()}
+            <p className="text-sm font-bold text-gray-700 sm:w-20 sm:text-right">
+              THB {Number(item.subtotal).toLocaleString()}
             </p>
 
             {/* Delete button / inline confirmation */}
             {confirmDeleteId === item.id ? (
               <div className="flex items-center gap-1.5 flex-shrink-0">
-                <span className="text-xs text-gray-500 whitespace-nowrap">ลบ?</span>
+                <span className="text-xs text-gray-500 whitespace-nowrap">Delete?</span>
                 <button
                   onClick={() => confirmRemove(item.id)}
                   className="w-6 h-6 bg-red-500 text-white rounded text-xs flex items-center justify-center hover:bg-red-600"
@@ -124,34 +128,34 @@ export default function CartPage() {
         ))}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div className="app-card p-6">
         <div className="flex justify-between items-center mb-4">
-          <span className="text-gray-600">รวมทั้งหมด</span>
-          <span className="text-2xl font-bold text-indigo-600">฿{Number(cart.total).toLocaleString()}</span>
+          <span className="text-gray-600">Total</span>
+          <span className="text-2xl font-bold text-brand">THB {Number(cart.total).toLocaleString()}</span>
         </div>
         <div className="flex gap-3">
           {confirmClear ? (
             <div className="flex-1 flex items-center gap-2">
-              <span className="text-sm text-gray-600 whitespace-nowrap">ล้างทั้งหมด?</span>
+              <span className="text-sm text-gray-600 whitespace-nowrap">Clear all?</span>
               <button
                 onClick={() => { clearCart(); setConfirmClear(false); }}
                 className="flex-1 bg-red-500 text-white py-2 rounded-xl text-sm hover:bg-red-600"
-              >ยืนยัน</button>
+              >Confirm</button>
               <button
                 onClick={() => setConfirmClear(false)}
                 className="flex-1 border border-gray-200 text-gray-600 py-2 rounded-xl text-sm hover:bg-gray-50"
-              >ยกเลิก</button>
+              >Cancel</button>
             </div>
           ) : (
             <button onClick={() => setConfirmClear(true)} className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm hover:bg-gray-50">
-              ล้างตะกร้า
+              Clear Cart
             </button>
           )}
           <button
             onClick={() => navigate('/checkout')}
-            className="flex-2 bg-indigo-600 text-white px-8 py-2.5 rounded-xl font-medium hover:bg-indigo-700"
+            className="flex-2 app-button px-8 py-2.5"
           >
-            สั่งซื้อ →
+            Checkout →
           </button>
         </div>
       </div>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import { useCart } from '../../context/CartContext';
+import { Notice } from '../../components/ui/Feedback';
 
 export default function CheckoutPage() {
   const { cart, fetchCart } = useCart();
@@ -11,6 +12,7 @@ export default function CheckoutPage() {
   const [newAddr, setNewAddr] = useState({ recipient_name: '', phone: '', street: '', sub_district: '', district: '', province: '', postal_code: '' });
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState(null);
 
   useEffect(() => {
     api.get('/auth/me').then(() => {});
@@ -28,13 +30,17 @@ export default function CheckoutPage() {
       setAddresses(prev => [...prev, res.data.address]);
       setSelectedAddress(String(res.data.address.id));
       setShowForm(false);
+      setMessage({ type: 'success', text: 'Address saved.' });
     } catch (err) {
-      alert(err.response?.data?.message || 'บันทึกที่อยู่ไม่สำเร็จ');
+      setMessage({ type: 'error', text: err.response?.data?.message || 'Unable to save address.' });
     }
   };
 
   const handleOrder = async () => {
-    if (!selectedAddress) return alert('กรุณาเลือกที่อยู่จัดส่ง');
+    if (!selectedAddress) {
+      setMessage({ type: 'warning', text: 'Please choose a shipping address before checkout.' });
+      return;
+    }
     setLoading(true);
     try {
       const orderRes = await api.post('/orders', { shipping_address_id: parseInt(selectedAddress) });
@@ -43,7 +49,7 @@ export default function CheckoutPage() {
       navigate(`/orders/${orderId}?success=1`);
       fetchCart();
     } catch (err) {
-      alert(err.response?.data?.message || 'เกิดข้อผิดพลาด');
+      setMessage({ type: 'error', text: err.response?.data?.message || 'Unable to place order.' });
     } finally {
       setLoading(false);
     }
@@ -56,15 +62,22 @@ export default function CheckoutPage() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">ยืนยันการสั่งซื้อ</h1>
+      <h1 className="text-2xl font-bold text-gray-800 mb-6">Confirm Order</h1>
+      {message && (
+        <div className="mb-4">
+          <Notice type={message.type} onClose={() => setMessage(null)}>
+            {message.text}
+          </Notice>
+        </div>
+      )}
 
       <div className="grid md:grid-cols-5 gap-6">
         <div className="md:col-span-3 space-y-4">
           {/* Address */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-            <h2 className="font-semibold text-gray-700 mb-3">ที่อยู่จัดส่ง</h2>
+          <div className="app-card p-5">
+            <h2 className="font-semibold text-gray-700 mb-3">Shipping Address</h2>
             {addresses.length === 0 && !showForm && (
-              <p className="text-sm text-gray-400 mb-3">ยังไม่มีที่อยู่ กรุณาเพิ่มที่อยู่ก่อน</p>
+              <p className="text-sm text-gray-400 mb-3">No address yet. Please add a shipping address first.</p>
             )}
             <div className="space-y-2 mb-3">
               {addresses.map(addr => (
@@ -84,66 +97,66 @@ export default function CheckoutPage() {
                 </label>
               ))}
             </div>
-            <button onClick={() => setShowForm(!showForm)} className="text-sm text-indigo-600 hover:underline">
-              + เพิ่มที่อยู่ใหม่
+            <button onClick={() => setShowForm(!showForm)} className="text-sm font-bold text-brand hover:underline">
+              + Add new address
             </button>
             {showForm && (
               <form onSubmit={handleSaveAddress} className="mt-3 grid grid-cols-2 gap-2">
                 {[
-                  { label: 'ชื่อผู้รับ', key: 'recipient_name' }, { label: 'เบอร์โทร', key: 'phone' },
-                  { label: 'ที่อยู่', key: 'street' }, { label: 'แขวง/ตำบล', key: 'sub_district' },
-                  { label: 'เขต/อำเภอ', key: 'district' }, { label: 'จังหวัด', key: 'province' },
-                  { label: 'รหัสไปรษณีย์', key: 'postal_code' },
+                  { label: 'Recipient Name', key: 'recipient_name' }, { label: 'Phone', key: 'phone' },
+                  { label: 'Street Address', key: 'street' }, { label: 'Sub-district', key: 'sub_district' },
+                  { label: 'District', key: 'district' }, { label: 'Province', key: 'province' },
+                  { label: 'Postal Code', key: 'postal_code' },
                 ].map(({ label, key }) => (
                   <div key={key} className={key === 'street' ? 'col-span-2' : ''}>
                     <label className="text-xs text-gray-500">{label}</label>
                     <input
                       value={newAddr[key]}
                       onChange={e => setNewAddr({ ...newAddr, [key]: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm mt-0.5"
+                      className="app-input w-full px-2 py-1.5 text-sm mt-0.5"
                       required
                     />
                   </div>
                 ))}
                 <div className="col-span-2 flex gap-2 mt-1">
-                  <button type="submit" className="bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-sm">บันทึก</button>
-                  <button type="button" onClick={() => setShowForm(false)} className="text-sm text-gray-400">ยกเลิก</button>
+                  <button type="submit" className="app-button px-4 py-1.5 text-sm">Save</button>
+                  <button type="button" onClick={() => setShowForm(false)} className="text-sm text-gray-400">Cancel</button>
                 </div>
               </form>
             )}
           </div>
 
           {/* Payment method */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-            <h2 className="font-semibold text-gray-700 mb-2">การชำระเงิน</h2>
+          <div className="app-card p-5">
+            <h2 className="font-semibold text-gray-700 mb-2">Payment</h2>
             <div className="flex items-center gap-2 text-sm text-gray-600">
-              <input type="radio" checked readOnly /> <span>Mock Payment (ทดสอบ)</span>
+              <input type="radio" checked readOnly /> <span>Mock Payment (Test)</span>
             </div>
           </div>
         </div>
 
         {/* Summary */}
         <div className="md:col-span-2">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sticky top-24">
-            <h2 className="font-semibold text-gray-700 mb-3">สรุปคำสั่งซื้อ</h2>
+          <div className="app-card p-5 sticky top-24">
+            <h2 className="font-semibold text-gray-700 mb-3">Order Summary</h2>
             <div className="space-y-2 mb-4">
               {cart.items.map(item => (
                 <div key={item.id} className="flex justify-between text-sm">
                   <span className="text-gray-600 truncate flex-1">{item.name} × {item.quantity}</span>
-                  <span className="text-gray-700 ml-2">฿{Number(item.subtotal).toLocaleString()}</span>
+                  <span className="text-gray-700 ml-2">THB {Number(item.subtotal).toLocaleString()}</span>
                 </div>
               ))}
             </div>
             <div className="border-t border-gray-100 pt-3 flex justify-between font-bold">
-              <span>รวม</span>
-              <span className="text-indigo-600">฿{Number(cart.total).toLocaleString()}</span>
+              <span>Total</span>
+              <span className="text-brand">THB {Number(cart.total).toLocaleString()}</span>
             </div>
             <button
               onClick={handleOrder}
               disabled={loading}
-              className="w-full mt-4 bg-indigo-600 text-white py-3 rounded-xl font-medium hover:bg-indigo-700 disabled:opacity-50"
+              className="app-button w-full mt-4 py-3 disabled:opacity-50"
             >
-              {loading ? 'กำลังดำเนินการ...' : 'ยืนยันและชำระเงิน'}
+              {loading ? 'Processing...' : 'Confirm and Pay'}
             </button>
           </div>
         </div>

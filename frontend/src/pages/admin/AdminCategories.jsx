@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/axios';
+import { EmptyState, Notice } from '../../components/ui/Feedback';
 
 export default function AdminCategories() {
   const [categories, setCategories] = useState([]);
   const [form, setForm] = useState({ name: '', description: '' });
   const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState(null);
+  const [deleteId, setDeleteId] = useState(null);
 
   const fetchCategories = () => {
     api.get('/admin/categories').then(r => setCategories(r.data));
@@ -18,70 +21,79 @@ export default function AdminCategories() {
     try {
       await api.post('/admin/categories', form);
       setForm({ name: '', description: '' });
+      setMessage({ type: 'success', text: 'Category created.' });
       fetchCategories();
     } catch (err) {
-      alert(err.response?.data?.message || 'เกิดข้อผิดพลาด');
+      setMessage({ type: 'error', text: err.response?.data?.message || 'Unable to save category.' });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (id, name) => {
-    if (!confirm(`ยืนยันลบหมวดหมู่ "${name}"?`)) return;
+  const handleDelete = async (id) => {
     try {
       await api.delete(`/admin/categories/${id}`);
+      setDeleteId(null);
+      setMessage({ type: 'success', text: 'Category deleted.' });
       fetchCategories();
     } catch (err) {
-      alert(err.response?.data?.message || 'ลบไม่สำเร็จ อาจมีสินค้าอยู่ในหมวดหมู่นี้');
+      setMessage({ type: 'error', text: err.response?.data?.message || 'Unable to delete category. It may still have products.' });
     }
   };
 
   return (
     <div className="max-w-2xl">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">จัดการหมวดหมู่</h1>
+      <h1 className="text-2xl font-bold text-gray-800 mb-6">Category Management</h1>
+      {message && (
+        <div className="mb-4">
+          <Notice type={message.type} onClose={() => setMessage(null)}>
+            {message.text}
+          </Notice>
+        </div>
+      )}
 
       {/* Add form */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-6">
-        <h2 className="font-semibold text-gray-700 mb-4">เพิ่มหมวดหมู่ใหม่</h2>
+      <div className="app-card p-5 mb-6">
+        <h2 className="font-semibold text-gray-700 mb-4">Add New Category</h2>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">ชื่อหมวดหมู่</label>
+            <label className="block text-xs text-gray-500 mb-1">Category Name</label>
             <input
               value={form.name}
               onChange={e => setForm({ ...form, name: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="เช่น บอร์ดเกม, ลูกเต๋า"
+              className="app-input w-full px-3 py-2 text-sm"
+              placeholder="e.g. Board Games, Dice"
               required
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">คำอธิบาย (ไม่บังคับ)</label>
+            <label className="block text-xs text-gray-500 mb-1">Description (optional)</label>
             <input
               value={form.description}
               onChange={e => setForm({ ...form, description: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="คำอธิบายสั้น ๆ"
+              className="app-input w-full px-3 py-2 text-sm"
+              placeholder="Short description"
             />
           </div>
           <button
             type="submit"
             disabled={saving}
-            className="bg-indigo-600 text-white px-6 py-2 rounded-lg text-sm hover:bg-indigo-700 disabled:opacity-50"
+            className="app-button px-6 py-2 text-sm disabled:opacity-50"
           >
-            {saving ? 'กำลังบันทึก...' : 'เพิ่มหมวดหมู่'}
+            {saving ? 'Saving...' : 'Add Category'}
           </button>
         </form>
       </div>
 
       {/* Category list */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="app-card overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
               <th className="text-left text-xs text-gray-500 font-medium px-4 py-3">#</th>
-              <th className="text-left text-xs text-gray-500 font-medium px-4 py-3">ชื่อ</th>
-              <th className="text-left text-xs text-gray-500 font-medium px-4 py-3">คำอธิบาย</th>
-              <th className="text-left text-xs text-gray-500 font-medium px-4 py-3">จัดการ</th>
+              <th className="text-left text-xs text-gray-500 font-medium px-4 py-3">Name</th>
+              <th className="text-left text-xs text-gray-500 font-medium px-4 py-3">Description</th>
+              <th className="text-left text-xs text-gray-500 font-medium px-4 py-3">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -92,18 +104,26 @@ export default function AdminCategories() {
                 <td className="px-4 py-3 text-gray-500">{c.description || '-'}</td>
                 <td className="px-4 py-3">
                   <button
-                    onClick={() => handleDelete(c.id, c.name)}
+                    onClick={() => setDeleteId(c.id)}
                     className="text-red-500 hover:underline text-xs"
                   >
-                    ลบ
+                    Delete
                   </button>
+                  {deleteId === c.id && (
+                    <span className="ml-2 inline-flex gap-2">
+                      <button onClick={() => handleDelete(c.id)} className="text-red-500 hover:underline text-xs">Confirm</button>
+                      <button onClick={() => setDeleteId(null)} className="text-slate hover:underline text-xs">Cancel</button>
+                    </span>
+                  )}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
         {categories.length === 0 && (
-          <div className="text-center py-10 text-gray-400">ยังไม่มีหมวดหมู่</div>
+          <div className="p-4">
+            <EmptyState title="No categories yet" message="Create a category so products can be organized for customers." />
+          </div>
         )}
       </div>
     </div>

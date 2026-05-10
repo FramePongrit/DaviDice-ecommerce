@@ -1,16 +1,24 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../api/axios';
+import { EmptyState, LoadingState, Notice } from '../../components/ui/Feedback';
 
 const STATUSES = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
 const STATUS_LABEL = {
-  pending: 'รอชำระเงิน', processing: 'เตรียมสินค้า',
-  shipped: 'จัดส่งแล้ว', delivered: 'สำเร็จ', cancelled: 'ยกเลิก',
+  pending: 'Pending Payment', processing: 'Processing',
+  shipped: 'Shipped', delivered: 'Delivered', cancelled: 'Cancelled',
+};
+const getStatusFromParams = (searchParams) => {
+  const value = searchParams.get('status');
+  return STATUSES.includes(value) ? value : '';
 };
 
 export default function AdminOrders() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('');
+  const [filter, setFilter] = useState(() => getStatusFromParams(searchParams));
+  const [message, setMessage] = useState(null);
 
   const fetchOrders = () => {
     setLoading(true);
@@ -21,30 +29,57 @@ export default function AdminOrders() {
 
   useEffect(() => { fetchOrders(); }, [filter]);
 
+  useEffect(() => {
+    setFilter(getStatusFromParams(searchParams));
+  }, [searchParams]);
+
+  const updateFilter = (nextFilter) => {
+    setFilter(nextFilter);
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextFilter) {
+      nextParams.set('status', nextFilter);
+    } else {
+      nextParams.delete('status');
+    }
+    setSearchParams(nextParams, { replace: true });
+  };
+
   const updateStatus = async (id, status) => {
-    await api.put(`/admin/orders/${id}/status`, { status });
-    fetchOrders();
+    try {
+      await api.put(`/admin/orders/${id}/status`, { status });
+      setMessage({ type: 'success', text: `Order #${id} status updated.` });
+      fetchOrders();
+    } catch (err) {
+      setMessage({ type: 'error', text: err.response?.data?.message || 'Unable to update order status.' });
+    }
   };
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">จัดการออเดอร์</h1>
+      <h1 className="text-2xl font-bold text-gray-800 mb-6">Order Management</h1>
+      {message && (
+        <div className="mb-4">
+          <Notice type={message.type} onClose={() => setMessage(null)}>
+            {message.text}
+          </Notice>
+        </div>
+      )}
 
       <div className="flex gap-2 mb-4 flex-wrap">
-        <button onClick={() => setFilter('')} className={`px-3 py-1.5 rounded-lg text-sm ${!filter ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-200 text-gray-600'}`}>ทั้งหมด</button>
+        <button onClick={() => updateFilter('')} className={`px-3 py-1.5 rounded-lg text-sm ${!filter ? 'bg-brand text-white' : 'bg-white border border-gray-200 text-gray-600'}`}>All</button>
         {STATUSES.map(s => (
-          <button key={s} onClick={() => setFilter(s)} className={`px-3 py-1.5 rounded-lg text-sm ${filter === s ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-200 text-gray-600'}`}>
+          <button key={s} onClick={() => updateFilter(s)} className={`px-3 py-1.5 rounded-lg text-sm ${filter === s ? 'bg-brand text-white' : 'bg-white border border-gray-200 text-gray-600'}`}>
             {STATUS_LABEL[s]}
           </button>
         ))}
       </div>
 
-      {loading ? <div className="text-center py-10 text-gray-400">กำลังโหลด...</div> : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      {loading ? <LoadingState label="Loading orders..." /> : (
+        <div className="app-card overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
-                {['#', 'ลูกค้า', 'วันที่', 'ยอดรวม', 'สถานะ', 'อัปเดต'].map(h => (
+                {['#', 'Customer', 'Date', 'Total', 'Status', 'Update'].map(h => (
                   <th key={h} className="text-left text-xs text-gray-500 font-medium px-4 py-3">{h}</th>
                 ))}
               </tr>
@@ -58,7 +93,7 @@ export default function AdminOrders() {
                     <p className="text-xs text-gray-400">{order.customer_email}</p>
                   </td>
                   <td className="px-4 py-3 text-gray-500">{new Date(order.created_at).toLocaleDateString('th-TH')}</td>
-                  <td className="px-4 py-3 font-medium text-indigo-600">฿{Number(order.total_price).toLocaleString()}</td>
+                  <td className="px-4 py-3 font-medium text-brand">THB {Number(order.total_price).toLocaleString()}</td>
                   <td className="px-4 py-3">
                     <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">{STATUS_LABEL[order.status]}</span>
                   </td>
@@ -66,7 +101,7 @@ export default function AdminOrders() {
                     <select
                       value={order.status}
                       onChange={e => updateStatus(order.id, e.target.value)}
-                      className="border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="app-input px-2 py-1 text-xs"
                     >
                       {STATUSES.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
                     </select>
@@ -75,7 +110,11 @@ export default function AdminOrders() {
               ))}
             </tbody>
           </table>
-          {orders.length === 0 && <div className="text-center py-10 text-gray-400">ไม่มีออเดอร์</div>}
+          {orders.length === 0 && (
+            <div className="p-4">
+              <EmptyState title="No orders found" message="Try switching status filters or wait for customer orders." />
+            </div>
+          )}
         </div>
       )}
     </div>

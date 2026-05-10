@@ -138,4 +138,36 @@ const getOrderById = async (req, res) => {
   }
 };
 
-module.exports = { createOrder, getMyOrders, getOrderById };
+// PUT /api/orders/:id/received — ลูกค้ากด "ได้รับสินค้าแล้ว"
+const markOrderAsReceived = async (req, res) => {
+  const { id } = req.params;
+  try {
+    // ตรวจสอบว่าเป็นของ user คนนี้ และ status เป็น shipped เท่านั้น
+    const checkOrder = await pool.query(
+      'SELECT id, status FROM orders WHERE id = $1 AND user_id = $2',
+      [id, req.user.id]
+    );
+
+    if (checkOrder.rows.length === 0) {
+      return res.status(404).json({ message: 'ไม่พบออเดอร์' });
+    }
+
+    if (checkOrder.rows[0].status !== 'shipped') {
+      return res.status(400).json({ message: 'สถานะออเดอร์ไม่อนุญาต (ต้องเป็น shipped)' });
+    }
+
+    // Update status เป็น delivered
+    const result = await pool.query(
+      'UPDATE orders SET status = $1 WHERE id = $2 RETURNING id, status',
+      ['delivered', id]
+    );
+
+    console.log(`✅ Order ${id} marked as received by user ${req.user.id}`);
+    res.json({ message: 'อัปเดตสถานะสำเร็จ', order: result.rows[0] });
+  } catch (err) {
+    console.error(`❌ Error marking order as received: ${err.message}`);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
+  }
+};
+
+module.exports = { createOrder, getMyOrders, getOrderById, markOrderAsReceived };

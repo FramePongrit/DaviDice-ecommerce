@@ -1,77 +1,71 @@
-import { Link } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 
 export default function Layout({ children }) {
+  const location = useLocation();
+  const isLandingPage = location.pathname === '/';
+  const isAdminArea = location.pathname.startsWith('/admin');
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+
+  if (isAdminArea) {
+    return (
+      <div className="min-h-screen app-shell lg:flex">
+        <Sidebar />
+        <main className="min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
+          <div className="app-panel mx-auto w-full max-w-[1720px] p-4 sm:p-6 lg:p-8">
+            {children}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (isAuthPage) {
+    return (
+      <div className="h-screen overflow-hidden flex flex-col bg-snow">
+        <main className="min-h-0 flex-1 px-4 py-4">
+          {children}
+        </main>
+        <footer style={{ backgroundColor: '#222126' }}>
+          <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-4 text-center">
+            <p className="text-sm" style={{ color: '#848E9C' }}>Powered by David</p>
+          </div>
+        </footer>
+      </div>
+    );
+  }
+
+  if (isLandingPage) {
+    return (
+      <div className="h-screen overflow-hidden flex flex-col app-shell">
+        <Navbar />
+        <main className="min-h-0 flex-1">
+          {children}
+        </main>
+        <footer style={{ backgroundColor: '#222126' }}>
+          <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-4 text-center">
+            <p className="text-sm" style={{ color: '#848E9C' }}>Powered by David</p>
+          </div>
+        </footer>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex flex-col bg-snow">
+    <div className="min-h-screen flex flex-col app-shell">
       <Navbar />
       <div className="flex flex-1">
         <Sidebar />
-        <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-8 lg:py-12">
-          <div className="w-full">
+        <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-6 lg:py-8">
+          <div className="w-full app-panel mx-auto max-w-[1480px] p-4 sm:p-6 lg:p-8">
             {children}
           </div>
         </main>
       </div>
       <footer style={{ backgroundColor: '#222126' }}>
-        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-6 lg:py-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-
-            {/* Brand */}
-            <div>
-              <p className="text-xl font-bold text-white">
-                Davi<span style={{ color: '#F0B90B' }}>Dice</span>
-              </p>
-              <p className="text-sm mt-2 leading-relaxed" style={{ color: '#848E9C' }}>
-                ร้านขายลูกเต๋าและอุปกรณ์เกมบอร์ดคุณภาพสูง สำหรับทุกระดับผู้เล่น
-              </p>
-            </div>
-
-            {/* Quick links */}
-            <div>
-              <p className="text-sm font-semibold text-white mb-3">เมนู</p>
-              <ul className="space-y-2">
-                {[
-                  { to: '/products', label: 'สินค้าทั้งหมด' },
-                  { to: '/cart',     label: 'ตะกร้าสินค้า' },
-                  { to: '/orders',   label: 'ติดตามออเดอร์' },
-                ].map(({ to, label }) => (
-                  <li key={to}>
-                    <Link
-                      to={to}
-                      className="text-sm transition-colors duration-200"
-                      style={{ color: '#848E9C' }}
-                      onMouseEnter={e => e.target.style.color = '#ffffff'}
-                      onMouseLeave={e => e.target.style.color = '#848E9C'}
-                    >
-                      {label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Contact */}
-            <div>
-              <p className="text-sm font-semibold text-white mb-3">ติดต่อ</p>
-              <div className="space-y-2">
-                <p className="text-sm" style={{ color: '#848E9C' }}>support@davidice.com</p>
-                <p className="text-sm" style={{ color: '#848E9C' }}>CPE241 — King Mongkut's</p>
-                <p className="text-sm" style={{ color: '#848E9C' }}>University of Technology Thonburi</p>
-              </div>
-            </div>
-
-          </div>
-
-          {/* Bottom bar */}
-          <div className="pt-3 flex items-center justify-between" style={{ borderTop: '1px solid #2B2F36' }}>
-            <p className="text-xs" style={{ color: '#848E9C' }}>© 2025 DaviDice — CPE241 Project</p>
-            <div className="flex items-center gap-1">
-              <span className="text-xs" style={{ color: '#848E9C' }}>Powered by</span>
-              <span className="text-xs font-semibold" style={{ color: '#F0B90B' }}>React + Node.js</span>
-            </div>
-          </div>
+        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-6 lg:py-8 text-center">
+          <p className="text-sm" style={{ color: '#848E9C' }}>Powered by David</p>
         </div>
       </footer>
     </div>

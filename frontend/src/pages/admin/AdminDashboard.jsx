@@ -1,36 +1,154 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  AlertTriangle,
+  ArrowRight,
+  Boxes,
+  ClipboardList,
+  DollarSign,
+  PackageCheck,
+  Plus,
+  ShoppingBag,
+  Store,
+  Truck,
+  UsersRound,
+} from 'lucide-react';
 import api from '../../api/axios';
 
-const STATUS_LABEL = {
-  pending:    { label: 'รอชำระ',      color: 'bg-brand/10 text-brand-dark' },
-  processing: { label: 'เตรียมสินค้า', color: 'bg-slate/10 text-slate' },
-  shipped:    { label: 'จัดส่งแล้ว',  color: 'bg-copy/10 text-copy' },
-  delivered:  { label: 'สำเร็จ',      color: 'bg-crypto-green/10 text-crypto-green' },
-  cancelled:  { label: 'ยกเลิก',      color: 'bg-crypto-red/10 text-crypto-red' },
-};
+const money = (value) => `THB ${Number(value || 0).toLocaleString()}`;
+const number = (value) => Number(value || 0).toLocaleString();
+const CARD = 'app-card';
+const ACCENT = '#24883B';
+const ACCENT_SOFT = '#F3F8C8';
+const GOLD = '#E5D64B';
 
-function BarChart({ data, valueKey, labelKey, color = '#F0B90B', formatValue }) {
-  const max = Math.max(...data.map(r => parseFloat(r[valueKey])), 1);
+function RevenueChart({ data }) {
+  if (!data?.length) {
+    return <div className="grid h-56 place-items-center text-sm text-slate">No paid revenue yet</div>;
+  }
+
+  const height = 180;
+  const width = 720;
+  const values = data.map((item) => Number(item.gross_income || 0));
+  const max = Math.max(...values, 1);
+  const stepX = width / Math.max(data.length - 1, 1);
+  const points = values.map((value, index) => ({
+    x: index * stepX,
+    y: height - (value / max) * (height - 28) - 14,
+    item: data[index],
+  }));
+  const line = points.map((point, index) => `${index ? 'L' : 'M'} ${point.x} ${point.y}`).join(' ');
+  const fill = `${line} L ${width} ${height} L 0 ${height} Z`;
+
   return (
-    <div className="space-y-2">
-      {data.map((row, i) => {
-        const pct = (parseFloat(row[valueKey]) / max) * 100;
-        const display = formatValue ? formatValue(row[valueKey]) : row[valueKey];
+    <div className="h-56">
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full overflow-visible">
+        <defs>
+          <linearGradient id="revenueFill" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor={ACCENT} stopOpacity="0.18" />
+            <stop offset="100%" stopColor={ACCENT} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {[0, 0.25, 0.5, 0.75, 1].map((tick) => (
+          <line key={tick} x1="0" x2={width} y1={height * tick} y2={height * tick} stroke="#eeeeee" strokeDasharray="8 8" />
+        ))}
+        <path d={fill} fill="url(#revenueFill)" />
+        <path d={line} fill="none" stroke={ACCENT} strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" />
+        {points.map((point) => (
+          <circle key={point.item.month} cx={point.x} cy={point.y} r="5" fill="#fff" stroke={ACCENT} strokeWidth="3" />
+        ))}
+      </svg>
+    </div>
+  );
+}
+
+function ActionCard({ to, icon: Icon, label, value, caption, tone = 'green' }) {
+  const toneClass = {
+    green: 'text-brand bg-brand-light border-brand/20',
+    amber: 'text-[#8a6f00] bg-[#fff8cc] border-brand-gold/40',
+    red: 'text-red-600 bg-red-50 border-red-100',
+  }[tone];
+
+  return (
+    <Link to={to} className={`app-card group block border p-4 transition hover:-translate-y-0.5 hover:border-brand/30 ${toneClass}`}>
+      <div className="flex items-start justify-between gap-3">
+        <span className="grid h-10 w-10 place-items-center rounded-xl bg-white/75">
+          <Icon size={20} strokeWidth={2.5} />
+        </span>
+        <ArrowRight size={18} className="opacity-45 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
+      </div>
+      <p className="mt-4 text-xs font-bold uppercase tracking-wide opacity-75">{label}</p>
+      <p className="mt-1 text-3xl font-black tabular-nums text-ink">{value}</p>
+      <p className="mt-1 text-xs font-semibold opacity-75">{caption}</p>
+    </Link>
+  );
+}
+
+function SummaryCard({ icon: Icon, label, value, caption }) {
+  return (
+    <section className={`${CARD} p-4`}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide text-slate">{label}</p>
+          <p className="mt-3 text-2xl font-black text-ink tabular-nums">{value}</p>
+          {caption && <p className="mt-1 text-xs font-semibold text-brand">{caption}</p>}
+        </div>
+        <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-light text-brand">
+          <Icon size={20} strokeWidth={2.5} />
+        </span>
+      </div>
+    </section>
+  );
+}
+
+function StatusBadge({ status }) {
+  const tone = {
+    pending: 'bg-[#fff8cc] text-[#8a6f00]',
+    processing: 'bg-brand-light text-brand-dark',
+    shipped: 'bg-snow text-copy',
+    delivered: 'bg-green-50 text-green-700',
+    cancelled: 'bg-red-50 text-red-600',
+  }[status] || 'bg-snow text-copy';
+
+  return <span className={`rounded-full px-2 py-1 text-xs font-bold capitalize ${tone}`}>{status}</span>;
+}
+
+function AttentionPanel({ title, actionTo, actionLabel, children }) {
+  return (
+    <section className={`${CARD} overflow-hidden`}>
+      <div className="flex items-center justify-between border-b border-black/5 px-5 py-4">
+        <h2 className="text-lg font-black text-ink">{title}</h2>
+        <Link to={actionTo} className="text-xs font-bold text-brand hover:underline">{actionLabel}</Link>
+      </div>
+      <div className="divide-y divide-black/5">{children}</div>
+    </section>
+  );
+}
+
+function EmptyRows({ message }) {
+  return <div className="px-5 py-10 text-center text-sm font-semibold text-slate">{message}</div>;
+}
+
+function TopCategories({ categories }) {
+  if (!categories?.length) return <p className="py-8 text-center text-sm text-slate">No category sales yet</p>;
+  const max = Math.max(...categories.map((item) => Number(item.total_revenue || 0)), 1);
+
+  return (
+    <div className="space-y-4">
+      {categories.slice(0, 5).map((item, index) => {
+        const value = Number(item.total_revenue || 0);
         return (
-          <div key={i} className="flex items-center gap-2">
-            <span className="text-xs text-slate truncate" style={{ minWidth: '7rem', maxWidth: '7rem' }}>
-              {row[labelKey]}
-            </span>
-            <div className="flex-1 bg-snow rounded-full h-5 overflow-hidden">
+          <div key={item.category}>
+            <div className="mb-2 flex items-center justify-between gap-3 text-sm">
+              <span className="truncate font-semibold text-copy">{item.category}</span>
+              <span className="font-bold text-ink">{money(value)}</span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-brand-light">
               <div
-                className="h-5 rounded-full transition-all duration-500"
-                style={{ width: `${pct}%`, backgroundColor: color }}
+                className="h-full rounded-full"
+                style={{ width: `${(value / max) * 100}%`, backgroundColor: [ACCENT, GOLD, '#BFD95A', '#69B96A', '#9FCF68'][index] }}
               />
             </div>
-            <span className="text-xs font-semibold text-ink text-right tabular-nums" style={{ minWidth: '5rem' }}>
-              {display}
-            </span>
           </div>
         );
       })}
@@ -38,339 +156,140 @@ function BarChart({ data, valueKey, labelKey, color = '#F0B90B', formatValue }) 
   );
 }
 
-function toYearMonth(date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-}
-
-const cardCls = 'bg-white rounded-[12px] border border-ui-border shadow-[rgba(32,32,37,0.05)_0px_3px_5px_0px] p-5';
-const inputCls = 'border border-ui-border rounded-[8px] px-2 py-1 text-sm text-ink bg-white focus:outline-none focus:border-black transition-colors duration-200';
-
 export default function AdminDashboard() {
-  const [data, setData]           = useState(null);
-  const [income, setIncome]       = useState([]);
-  const [lowStock, setLowStock]   = useState([]);
-  const [topData, setTopData]     = useState({ month: '', products: [] });
-  const [loading, setLoading]     = useState(true);
-  const [editProduct, setEditProduct] = useState(null);
-  const [newStock, setNewStock]   = useState('');
-
-  const now = new Date();
-  const defaultTo   = toYearMonth(now);
-  const defaultFrom = toYearMonth(new Date(now.getFullYear() - 1, now.getMonth(), 1));
-
-  const [incomeFrom, setIncomeFrom] = useState(defaultFrom);
-  const [incomeTo,   setIncomeTo]   = useState(defaultTo);
-  const [selectedMonth, setSelectedMonth] = useState(toYearMonth(now));
+  const [data, setData] = useState(null);
+  const [income, setIncome] = useState([]);
+  const [salesByCategory, setSalesByCategory] = useState([]);
+  const [customerStats, setCustomerStats] = useState(null);
+  const [lowStockItems, setLowStockItems] = useState([]);
+  const [pendingOrders, setPendingOrders] = useState([]);
+  const [processingOrders, setProcessingOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       api.get('/admin/dashboard'),
-      api.get('/admin/analytics/low-stock'),
-    ]).then(([d, ls]) => {
-      setData(d.data);
-      setLowStock(ls.data);
-    }).finally(() => setLoading(false));
+      api.get('/admin/analytics/income'),
+      api.get('/admin/analytics/sales-by-category'),
+      api.get('/admin/analytics/customer-stats'),
+      api.get('/admin/analytics/low-stock', { params: { threshold: 10 } }),
+      api.get('/admin/orders', { params: { status: 'pending', limit: 100 } }),
+      api.get('/admin/orders', { params: { status: 'processing', limit: 100 } }),
+    ])
+      .then(([dashboard, incomeData, categoryData, customers, lowStock, pending, processing]) => {
+        setData(dashboard.data);
+        setIncome(incomeData.data || []);
+        setSalesByCategory(categoryData.data || []);
+        setCustomerStats(customers.data || {});
+        setLowStockItems(lowStock.data || []);
+        setPendingOrders(pending.data || []);
+        setProcessingOrders(processing.data || []);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleEditStock = (product) => {
-    setEditProduct(product);
-    setNewStock(product.stock_qty.toString());
-  };
+  const dashboard = useMemo(() => {
+    const totalCustomers = customerStats?.total_customers || 0;
+    const collectedRevenue = Number(data?.collected_revenue || 0);
+    const lowOnly = lowStockItems.filter((item) => Number(item.stock_qty || 0) > 0);
+    const outOnly = lowStockItems.filter((item) => Number(item.stock_qty || 0) === 0);
+    const urgentOrders = [...pendingOrders, ...processingOrders]
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .slice(0, 5);
 
-  const handleSaveStock = async () => {
-    if (!editProduct || newStock === '') return;
-    try {
-      await api.put(`/admin/products/${editProduct.id}`, { stock_qty: parseInt(newStock) });
-      setLowStock(lowStock.map(p => 
-        p.id === editProduct.id ? { ...p, stock_qty: parseInt(newStock) } : p
-      ));
-      setEditProduct(null);
-    } catch (err) {
-      console.error('Failed to update stock:', err);
-    }
-  };
+    return { totalCustomers, collectedRevenue, lowOnly, outOnly, urgentOrders };
+  }, [customerStats, data, lowStockItems, pendingOrders, processingOrders]);
 
-  useEffect(() => {
-    api.get('/admin/analytics/income', { params: { from: incomeFrom, to: incomeTo } })
-      .then(r => setIncome(r.data));
-  }, [incomeFrom, incomeTo]);
-
-  useEffect(() => {
-    api.get('/admin/analytics/top-products', { params: { month: selectedMonth } })
-      .then(r => setTopData(r.data));
-  }, [selectedMonth]);
-
-  if (loading) return <div className="text-center py-20 text-slate">กำลังโหลด...</div>;
+  if (loading) return <div className="grid min-h-[70vh] place-items-center text-slate">Loading dashboard...</div>;
+  if (!data) return <div className="grid min-h-[70vh] place-items-center text-slate">No dashboard data</div>;
 
   return (
-    <div>
-      {/* Dark header band */}
-      <div className="rounded-[12px] px-8 py-8 mb-8 flex items-center justify-between" style={{ backgroundColor: '#222126' }}>
+    <div className="space-y-6">
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: '#F0B90B' }}>DaviDice</p>
-          <h1 className="font-bold text-white" style={{ fontSize: '28px' }}>Admin Dashboard</h1>
-          <p className="text-sm mt-1" style={{ color: '#848E9C' }}>ภาพรวมธุรกิจและการจัดการร้านค้า</p>
+          <h1 className="text-4xl font-black tracking-tight text-ink">Dashboard</h1>
+          <p className="mt-1 text-sm text-slate">Store operations, stock alerts, and orders that need attention.</p>
         </div>
-        <div className="hidden md:flex items-center gap-6">
-          {[
-            { label: 'ออเดอร์รวม',  value: data.total_orders },
-            { label: 'รายได้',      value: `฿${Number(data.total_revenue).toLocaleString()}` },
-            { label: 'สินค้า',      value: data.total_products },
-          ].map(({ label, value }) => (
-            <div key={label} className="text-center">
-              <p className="text-lg font-bold tabular-nums" style={{ color: '#F0B90B' }}>{value}</p>
-              <p className="text-xs" style={{ color: '#848E9C' }}>{label}</p>
-            </div>
+        <div className="flex flex-wrap gap-2">
+          <Link to="/admin/products" className="app-button flex items-center gap-2 px-4 py-2 text-sm"><Plus size={16} /> Add Product</Link>
+          <Link to="/admin/products?stock=low" className="app-button-secondary flex items-center gap-2 px-4 py-2 text-sm"><Boxes size={16} /> Manage Stock</Link>
+          <Link to="/admin/orders" className="app-button-secondary flex items-center gap-2 px-4 py-2 text-sm"><ClipboardList size={16} /> View Orders</Link>
+          <Link to="/products" className="app-button-secondary flex items-center gap-2 px-4 py-2 text-sm"><Store size={16} /> Storefront</Link>
+        </div>
+      </header>
+
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <ActionCard to="/admin/orders?status=pending" icon={ClipboardList} label="Pending Orders" value={number(pendingOrders.length)} caption="Needs payment review" tone="amber" />
+        <ActionCard to="/admin/orders?status=processing" icon={Truck} label="Processing Orders" value={number(processingOrders.length)} caption="Prepare and ship" />
+        <ActionCard to="/admin/products?stock=low" icon={AlertTriangle} label="Low Stock" value={number(dashboard.lowOnly.length)} caption="Stock is 1-10 units" tone={dashboard.lowOnly.length ? 'red' : 'green'} />
+        <ActionCard to="/admin/products?stock=out" icon={Boxes} label="Out of Stock" value={number(dashboard.outOnly.length)} caption="Unavailable now" tone={dashboard.outOnly.length ? 'red' : 'green'} />
+      </section>
+
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <SummaryCard icon={DollarSign} label="Revenue" value={money(data.total_revenue)} caption={`Collected ${money(dashboard.collectedRevenue)}`} />
+        <SummaryCard icon={PackageCheck} label="Total Orders" value={number(data.total_orders)} caption={`${number(data.recent_orders?.length)} recent`} />
+        <SummaryCard icon={ShoppingBag} label="Products" value={number(data.total_products)} caption="Available catalog records" />
+        <SummaryCard icon={UsersRound} label="Customers" value={number(dashboard.totalCustomers)} caption={`${number(customerStats?.repeat_customers || 0)} repeat`} />
+      </section>
+
+      <section className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+        <AttentionPanel title="Orders Need Action" actionTo="/admin/orders?status=pending" actionLabel="View orders">
+          {dashboard.urgentOrders.length === 0 ? (
+            <EmptyRows message="No pending or processing orders right now." />
+          ) : dashboard.urgentOrders.map((order) => (
+            <Link key={order.id} to={`/admin/orders?status=${order.status}`} className="flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-snow">
+              <div className="min-w-0">
+                <p className="font-bold text-ink">Order #{order.id}</p>
+                <p className="truncate text-xs text-slate">{order.customer_name} · {new Date(order.created_at).toLocaleDateString('en-US')}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-bold text-brand">{money(order.total_price)}</p>
+                <StatusBadge status={order.status} />
+              </div>
+            </Link>
           ))}
-        </div>
-      </div>
+        </AttentionPanel>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        {[
-          { label: 'ออเดอร์ทั้งหมด', value: data.total_orders,                                icon: '📦' },
-          { label: 'รายได้รวม',      value: `฿${Number(data.total_revenue).toLocaleString()}`, icon: '💰' },
-          { label: 'สินค้าทั้งหมด', value: data.total_products,                               icon: '🏷️' },
-        ].map(({ label, value, icon }) => (
-          <div key={label} className={`${cardCls} text-center`}>
-            <p className="text-3xl mb-1">{icon}</p>
-            <p className="text-2xl font-bold text-ink tabular-nums">{value}</p>
-            <p className="text-sm text-slate mt-0.5">{label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Analytics row */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-
-        {/* Gross income by month */}
-        <div className={cardCls}>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="font-semibold text-ink">รายได้รวมรายเดือน</h2>
-            <div className="flex items-center gap-1 text-xs text-slate">
-              <input
-                type="month"
-                value={incomeFrom}
-                max={incomeTo}
-                onChange={e => setIncomeFrom(e.target.value)}
-                className={inputCls}
-              />
-              <span>—</span>
-              <input
-                type="month"
-                value={incomeTo}
-                min={incomeFrom}
-                onChange={e => setIncomeTo(e.target.value)}
-                className={inputCls}
-              />
-            </div>
-          </div>
-          {income.length === 0 ? (
-            <p className="text-sm text-slate text-center py-6">ยังไม่มีข้อมูล</p>
-          ) : (
-            <BarChart
-              data={income}
-              labelKey="month"
-              valueKey="gross_income"
-              color="#F0B90B"
-              formatValue={v => `฿${Number(v).toLocaleString()}`}
-            />
-          )}
-        </div>
-
-        {/* Top purchased products by month */}
-        <div className={cardCls}>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="font-semibold text-ink">สินค้าขายดีประจำเดือน</h2>
-            <input
-              type="month"
-              value={selectedMonth}
-              onChange={e => setSelectedMonth(e.target.value)}
-              className={inputCls}
-            />
-          </div>
-          {topData.products.length === 0 ? (
-            <p className="text-sm text-slate text-center py-6">ไม่มีข้อมูลสินค้าในเดือนนี้</p>
-          ) : (
-            <BarChart
-              data={topData.products}
-              labelKey="name"
-              valueKey="total_qty"
-              color="#0ECB81"
-              formatValue={v => `${v} ชิ้น`}
-            />
-          )}
-        </div>
-      </div>
-
-      {/* Low stock table */}
-      <div className={`${cardCls} mb-6`}>
-        <h2 className="font-semibold text-ink mb-4">
-          สินค้าใกล้หมด
-          <span className="ml-2 text-xs font-normal text-slate">(stock ≤ 10 ชิ้น)</span>
-        </h2>
-        {lowStock.length === 0 ? (
-          <p className="text-sm text-crypto-green text-center py-4">สินค้าทุกรายการมีสต็อกเพียงพอ</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs text-slate border-b border-ui-border">
-                  <th className="pb-2 font-semibold">ชื่อสินค้า</th>
-                  <th className="pb-2 font-semibold">หมวดหมู่</th>
-                  <th className="pb-2 font-semibold text-right">คงเหลือ</th>
-                  <th className="pb-2 font-semibold text-center">จัดการ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lowStock.map(p => (
-                  <tr key={p.id} className="border-b border-ui-border last:border-0">
-                    <td className="py-2 text-ink">{p.name}</td>
-                    <td className="py-2 text-slate">{p.category}</td>
-                    <td className="py-2 text-right">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                        p.stock_qty === 0
-                          ? 'bg-crypto-red/10 text-crypto-red'
-                          : p.stock_qty <= 3
-                          ? 'bg-brand/10 text-brand-dark'
-                          : 'bg-brand/10 text-brand-dark'
-                      }`}>
-                        {p.stock_qty === 0 ? 'หมดแล้ว' : `${p.stock_qty} ชิ้น`}
-                      </span>
-                    </td>
-                    <td className="py-2 text-center">
-                      <button
-                        onClick={() => handleEditStock(p)}
-                        className="px-3 py-1 bg-brand text-ink rounded-[6px] text-xs font-semibold hover:bg-brand-hover hover:text-white transition-colors duration-200"
-                      >
-            
-
-      {/* Edit stock modal */}
-      {editProduct && (
-        <div className="fixed inset-0 bg-white/20 backdrop-blur flex items-center justify-center z-50 rounded-[12px]">
-          <div className={`${cardCls} w-96 max-w-full`}>
-            <h3 className="text-lg font-semibold text-ink mb-4">แก้ไข Stock - {editProduct.name}</h3>
-            <div className="mb-4">
-              <label className="block text-sm font-semibold text-copy mb-2">จำนวนคงเหลือ (ชิ้น)</label>
-              <input
-                type="number"
-                value={newStock}
-                onChange={e => setNewStock(e.target.value)}
-                min="0"
-                className={`${inputCls} w-full`}
-                placeholder="0"
-                autoFocus
-              />
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setEditProduct(null)}
-                className="flex-1 px-4 py-2 bg-snow text-ink rounded-[8px] font-semibold hover:bg-slate/20 transition-colors duration-200"
-              >
-                ยกเลิก
-              </button>
-              <button
-                onClick={handleSaveStock}
-                className="flex-1 px-4 py-2 bg-brand text-ink rounded-[8px] font-semibold hover:bg-brand-hover hover:text-white transition-colors duration-200"
-              >
-                บันทึก
-              </button>
-            </div>
-          </div>
-        </div>
-      )}            ✏️ จัดการ
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Recent orders */}
-      <div className={`${cardCls} mb-6`}>
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="font-semibold text-ink">ออเดอร์ล่าสุด</h2>
-          <Link to="/admin/orders" className="text-sm text-brand font-semibold hover:text-brand-dark transition-colors duration-200">
-            ดูทั้งหมด →
-          </Link>
-        </div>
-        <div className="space-y-1">
-          {data.recent_orders.map(order => {
-            const s = STATUS_LABEL[order.status] || { label: order.status, color: 'bg-snow text-slate' };
+        <AttentionPanel title="Stock Needs Attention" actionTo="/admin/products?stock=low" actionLabel="Manage stock">
+          {lowStockItems.length === 0 ? (
+            <EmptyRows message="All tracked products have healthy stock." />
+          ) : lowStockItems.slice(0, 5).map((product) => {
+            const stockQty = Number(product.stock_qty || 0);
             return (
-              <Link
-                key={order.id}
-                to="/admin/orders"
-                className="flex justify-between items-center py-2 border-b border-ui-border last:border-0 hover:bg-snow rounded-[8px] px-2 transition-colors duration-200"
-              >
-                <div>
-                  <span className="text-sm font-semibold text-ink">#{order.id}</span>
-                  <span className="text-sm text-slate ml-2">{order.customer_name}</span>
+              <Link key={product.id} to={`/admin/products?stock=${stockQty === 0 ? 'out' : 'low'}`} className="flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-snow">
+                <div className="min-w-0">
+                  <p className="truncate font-bold text-ink">{product.name}</p>
+                  <p className="truncate text-xs text-slate">{product.category}</p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${s.color}`}>{s.label}</span>
-                  <span className="text-sm font-bold text-brand tabular-nums">฿{Number(order.total_price).toLocaleString()}</span>
-                </div>
+                <span className={`rounded-full px-2.5 py-1 text-xs font-black ${stockQty === 0 ? 'bg-red-50 text-red-600' : 'bg-[#fff8cc] text-[#8a6f00]'}`}>
+                  {stockQty === 0 ? 'Out' : `${stockQty} left`}
+                </span>
               </Link>
             );
           })}
-        </div>
-      </div>
+        </AttentionPanel>
+      </section>
 
-      {/* Edit stock modal */}
-      {editProduct && (
-        <div className="fixed inset-0 bg-white/20 backdrop-blur flex items-center justify-center z-50">
-          <div className={`${cardCls} w-96 max-w-full mx-4`}>
-            <h3 className="text-lg font-semibold text-ink mb-4">แก้ไข Stock - {editProduct.name}</h3>
-            <div className="mb-4">
-              <label className="block text-sm font-semibold text-copy mb-2">จำนวนคงเหลือ (ชิ้น)</label>
-              <input
-                type="number"
-                value={newStock}
-                onChange={e => setNewStock(e.target.value)}
-                min="0"
-                className={`${inputCls} w-full`}
-                placeholder="0"
-                autoFocus
-              />
+      <section className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.8fr)]">
+        <div className={`${CARD} p-6`}>
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-black text-ink">Revenue Analytics</h2>
+              <p className="mt-1 text-sm text-slate">Paid revenue trend for the last 12 months.</p>
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setEditProduct(null)}
-                className="flex-1 px-4 py-2 bg-snow text-ink rounded-[8px] font-semibold hover:bg-slate/20 transition-colors duration-200"
-              >
-                ยกเลิก
-              </button>
-              <button
-                onClick={handleSaveStock}
-                className="flex-1 px-4 py-2 bg-brand text-ink rounded-[8px] font-semibold hover:bg-brand-hover hover:text-white transition-colors duration-200"
-              >
-                บันทึก
-              </button>
-            </div>
+            <span className="rounded-xl bg-brand-light px-3 py-2 text-xs font-bold text-brand">Last 12 Months</span>
           </div>
+          <RevenueChart data={income} />
         </div>
-      )}
 
-      {/* Quick nav */}
-      <div className="flex gap-4">
-        {[
-          { to: '/admin/products',   label: 'จัดการสินค้า' },
-          { to: '/admin/orders',     label: 'จัดการออเดอร์' },
-          { to: '/admin/categories', label: 'จัดการหมวดหมู่' },
-        ].map(({ to, label }) => (
-          <Link
-            key={to}
-            to={to}
-            className="flex-1 bg-brand text-ink rounded-[12px] p-4 text-center font-semibold hover:bg-brand-hover hover:text-white transition-colors duration-200"
-          >
-            {label}
-          </Link>
-        ))}
-      </div>
+        <div className={`${CARD} p-6`}>
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <h2 className="text-xl font-black text-ink">Top Categories</h2>
+            <span className="text-xs font-bold text-slate">By revenue</span>
+          </div>
+          <TopCategories categories={salesByCategory} />
+        </div>
+      </section>
     </div>
   );
 }
